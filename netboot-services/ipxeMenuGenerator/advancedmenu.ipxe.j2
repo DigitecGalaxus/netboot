@@ -1,0 +1,97 @@
+#!ipxe
+
+:start
+
+:advanced_menu
+clear menu
+set sp:hex 20 && set sp ${sp:string}
+menu DG-Cloudboot-Backend
+item --gap Standard:
+item reboot ${sp} Netboot neu versuchen -> Neustart
+item --gap Production:
+{% for file in prod %}
+item ubuntu-20.04-base-{{ file.imageName }} ${sp} {{ file.imageName }}
+{% endfor %}
+item --gap Development:
+{% for file in dev %}
+item ubuntu-20.04-base-{{ file.imageName }} ${sp} {{ file.imageName }}
+{% endfor %}
+item --gap Cachingserver:
+item ubuntu-20.04-base-netboot-caching-server.squashfs ${sp} netboot-caching-server
+item --gap Tools:
+item public-netbootxyz ${sp} Public netboot.xyz ||
+item shell ${sp} iPXE shell
+item netinfo ${sp} Netzwerkinfo
+item --gap Aktuell gesetzter Bootserver: ${next-server}
+item --gap Aktuell gesetzte Sprache: ${language}
+choose --timeout 10000 advanced_choice || goto start
+goto ${advanced_choice} ||
+
+:error
+echo Error occured, press any key to return to menu ...
+prompt
+goto advanced_menu
+
+:netinfo
+chain tftp://{{ netbootServerIP }}/netinfo.ipxe
+goto advanced_menu
+
+:reboot
+echo Rebooting...
+reboot
+
+:shell
+echo Type "exit" to return to menu.
+set menu advanced_menu
+shell
+goto advanced_menu
+
+:public-netbootxyz
+login || goto advanced_menu
+iseq ${password} devinite || goto advanced_menu
+chain http://boot.netboot.xyz/ipxe/netboot.xyz-snponly.efi
+
+
+#####################
+# Production-Images #
+#####################
+
+{% for file in prod %}
+:ubuntu-20.04-base-{{ file.imageName }}
+set squash_url http://${next-server}/prod/{{ file.imageName }}.squashfs
+set kernel_url http://${next-server}/kernels/{{ file.kernelFolderName }}/
+# Checking if the json-file for a respective version is available. If not, that means either that the caching-server is down or the files are not synced completely yet as they start with the squashfs-files and finish with the json-files.
+# See netboot-services/syncer
+imgfetch http://${next-server}/prod/{{ file.imageName }}-kernel.json && goto startboot ||
+set next-server {{ netbootServerIP }} && goto ubuntu-20.04-base-{{ file.imageName }}
+{% endfor %}
+
+
+######################
+# Development-Images #
+######################
+
+{% for file in dev %}
+:ubuntu-20.04-base-{{ file.imageName }}
+set squash_url http://${next-server}/dev/{{ file.imageName }}.squashfs
+set kernel_url http://${next-server}/kernels/{{ file.kernelFolderName }}/
+# Checking if the json-file for a respective version is available. If not, that means either that the caching-server is down or the files are not synced completely yet as they start with the squashfs-files and finish with the json-files.
+# See netboot-services/syncer
+imgfetch http://${next-server}/dev/{{ file.imageName }}-kernel.json && goto startboot ||
+set next-server {{ netbootServerIP }} && goto ubuntu-20.04-base-{{ file.imageName }}
+{% endfor %}
+
+######################
+# Cachingserver-Images #
+######################
+:ubuntu-20.04-base-netboot-caching-server.squashfs
+set next-server {{ netbootServerIP }}
+set squash_url http://${next-server}/caching-server/casper/netboot-caching-server.squashfs
+set kernel_url http://${next-server}/kernels/5.11.0-16-generic/
+
+
+:startboot
+imgfree
+kernel ${kernel_url}vmlinuz ip=dhcp boot=casper netboot=url url=${squash_url} initrd=initrd locale=${language} ${cmdline}
+initrd ${kernel_url}initrd
+boot

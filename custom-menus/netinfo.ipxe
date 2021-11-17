@@ -1,0 +1,21 @@
+#!ipxe
+
+menu Network info
+item --gap MAC:
+item mac ${sp} ${netX/mac}
+item --gap IP/mask:
+item ip ${sp} ${netX/ip}/${netX/netmask}
+item --gap Gateway:
+item gw ${sp} ${netX/gateway}
+item --gap Domain:
+item domain ${sp} ${netX/domain}
+item --gap DNS:
+item dns ${sp} ${netX/dns}
+item --gap DHCP server:
+item dhcpserver ${sp} ${netX/dhcp-server}
+item --gap Next-server:
+item nextserver ${sp} ${next-server}
+item --gap Filename:
+item filename ${sp} ${netX/filename}
+choose empty ||
+exit

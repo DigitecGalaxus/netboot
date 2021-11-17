@@ -1,0 +1,70 @@
+trigger:
+  branches:
+    include:
+      - "main"
+
+pool:
+  name: "planet-express-docker-agents"
+
+steps:
+- task: Docker@2
+  inputs:
+    containerRegistry: 'DG Modules Container Registry'
+    command: 'login'
+    addPipelineData: false
+- task: Docker@2
+  inputs:
+    containerRegistry: 'DG Modules Container Registry'
+    repository: 'planetexpress/netboot-tftp'
+    command: 'buildAndPush'
+    Dockerfile: './netboot-services/tftp/Dockerfile'
+    buildContext: './netboot-services/tftp/'
+    tags: 'latest'
+- task: Docker@2
+  inputs:
+    containerRegistry: 'DG Modules Container Registry'
+    repository: 'planetexpress/netboot-http'
+    command: 'buildAndPush'
+    Dockerfile: './netboot-services/http/Dockerfile'
+    buildContext: './netboot-services/http/'
+    tags: 'latest'
+- task: Docker@2
+  inputs:
+    containerRegistry: 'DG Modules Container Registry'
+    repository: 'planetexpress/netboot-cleaner'
+    command: 'buildAndPush'
+    Dockerfile: './netboot-services/cleaner/Dockerfile'
+    buildContext: './netboot-services/cleaner/'
+    tags: 'latest'
+- task: Docker@2
+  inputs:
+    containerRegistry: 'DG Modules Container Registry'
+    repository: 'planetexpress/netboot-sync'
+    command: 'buildAndPush'
+    Dockerfile: './netboot-services/sync/Dockerfile'
+    buildContext: './netboot-services/sync/'
+    tags: 'latest'
+- task: Docker@2
+  inputs:
+    containerRegistry: 'DG Modules Container Registry'
+    repository: 'planetexpress/netboot-monitoring'
+    command: 'buildAndPush'
+    Dockerfile: './netboot-services/monitoring/Dockerfile'
+    buildContext: './netboot-services/monitoring/'
+    tags: 'latest'
+- task: Docker@2
+  inputs:
+    containerRegistry: 'DG Modules Container Registry'
+    repository: 'planetexpress/caching-server-fetcher'
+    command: 'buildAndPush'
+    Dockerfile: './netboot-services/cachingServerFetcher/Dockerfile'
+    buildContext: './netboot-services/cachingServerFetcher/'
+    tags: 'latest'
+- task: Docker@2
+  inputs:
+    containerRegistry: 'DG Modules Container Registry'
+    repository: 'planetexpress/netboot-ipxe-menu-generator'
+    command: 'buildAndPush'
+    Dockerfile: './netboot-services/ipxeMenuGenerator/Dockerfile'
+    buildContext: './netboot-services/ipxeMenuGenerator/'
+    tags: 'latest'

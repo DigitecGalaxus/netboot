@@ -1,0 +1,7 @@
+#!ipxe
+#netbootIPPlaceholder and kernelVersionPlaceholder should be replaced
+set kernel_url http://netbootIPPlaceholder/kernels/kernelVersionPlaceholder/
+imgfree
+kernel ${kernel_url}vmlinuz boot=casper ip=dhcp toram ignore_uuid initrd=initrd
+initrd ${kernel_url}initrd
+boot

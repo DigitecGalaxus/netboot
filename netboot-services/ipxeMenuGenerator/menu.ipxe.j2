@@ -1,0 +1,73 @@
+#!ipxe
+
+:start
+
+# Caching-Detection: Sets next-server based on the information of caching_server_list.json provided by another source.
+:caching
+{% for server in cachingServers %}
+iseq ${netX/gateway} {{ server.gatewayIP }} && set next-server {{ server.cachingServerIP }} && goto language ||
+{% endfor %}
+# Fallback (when no condition above triggers to set next-server)
+set next-server {{ netbootServerIP }}
+
+# Language-Detection: Set different languages based on the default gateway IP address
+:language
+# Lausanne
+iseq ${netX/gateway} 172.20.72.1 && set language fr_CH && goto macboot ||
+# Genf
+iseq ${netX/gateway} 172.20.56.1 && set language fr_CH && goto macboot ||
+# Krefeld
+iseq ${netX/gateway} 172.22.32.1 && set language de_DE && goto macboot ||
+# Fallback (when no condition above triggers to set next-server)
+set language de_CH
+
+:macboot
+chain --autofree tftp://{{ netbootServerIP }}/MAC-${mac:hexraw}.ipxe || echo Custom boot by MAC not found, going to menu...
+
+:initial_menu
+set sp:hex 20 && set sp ${sp:string}
+menu DG-Network-Bootloader
+item --gap Standard:
+item dg-thinclient-prod ${sp} DG ThinClient
+item --gap Erweitert:
+item advanced ${sp} Erweiterte Bootoptionen
+item reboot ${sp} Neustart
+item --gap Aktuell gesetzter Bootserver: ${next-server}
+item --gap Aktuell gesetzte Sprache: ${language}
+choose --timeout 10000 initial_choice || goto start
+goto ${initial_choice}
+
+# Bootconfigurtion for our netboot-OS
+:dg-thinclient-prod
+set squash_url http://${next-server}/prod/{{ imageName }}.squashfs
+set kernel_url http://${next-server}/kernels/{{ kernelFolderName }}/
+# Checking if the json-file for a respective version is available. If not, that means either that the caching-server is down or the files are not synced completely yet as they start with the squashfs-files and finish with the json-files.
+# See netboot-services/syncer
+imgfetch http://${next-server}/prod/{{ imageName }}-kernel.json && goto startboot ||
+set next-server {{ netbootServerIP }} && goto dg-thinclient-prod
+
+:startboot
+imgfree
+kernel ${kernel_url}vmlinuz ip=dhcp boot=casper netboot=url url=${squash_url} initrd=initrd locale=${language} ${cmdline}
+initrd ${kernel_url}initrd
+boot
+
+# Chaining the advanced menu.
+:advanced
+chain --autofree tftp://{{ netbootServerIP }}/advancedmenu.ipxe
+
+:localboot
+exit
+
+:retry
+goto start
+
+:reboot
+reboot
+goto start
+
+:debug
+echo Type "exit" to return to menu
+shell
+goto start
+

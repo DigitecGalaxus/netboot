@@ -1,0 +1,96 @@
+version: "3"
+services:
+  netboot-tftp:
+    image: anymodconrst001dg.azurecr.io/planetexpress/netboot-tftp:latest
+    container_name: netboot-tftp
+    volumes:
+      - $HOME/netboot/config:/config
+    ports:
+      - 69:69/udp #TFTP
+    restart: unless-stopped
+
+  netboot-http:
+    image: anymodconrst001dg.azurecr.io/planetexpress/netboot-http:latest
+    container_name: netboot-http
+    # This corresponds to the `master` user on the netboot server
+    user: 1000:1000
+    volumes:
+      - $HOME/netboot/assets:/assets
+      - $HOME/netboot/caching_server_list.json:/assets/caching_server_list.json
+    ports:
+      - 80:80 #Assets
+    restart: unless-stopped
+
+  netboot-cleaner:
+    image: anymodconrst001dg.azurecr.io/planetexpress/netboot-cleaner:latest
+    container_name: netboot-cleaner
+    # This corresponds to the `master` user on the netboot server
+    user: 1000:1000
+    volumes:
+      - $HOME/netboot/assets:/cleaning
+    restart: unless-stopped
+
+  netboot-syncer:
+    image: anymodconrst001dg.azurecr.io/planetexpress/netboot-sync:latest
+    container_name: netboot-syncer
+    environment: 
+      - devCachingServerIP
+      - cachingServerUsername=master
+      - cachingServerAssetsDirectory=/home/master/netboot/assets
+    volumes:
+      - $HOME/netboot/assets:/syncing
+      - $HOME/netboot/caching_server_list.json:/ssh/caching_server_list.json
+      - $HOME/netboot/caching-server.pem:/ssh/caching-server.pem
+    depends_on: 
+      - netboot-caching-server-fetcher
+    restart: unless-stopped
+
+  netboot-monitoring:
+    image: anymodconrst001dg.azurecr.io/planetexpress/netboot-monitoring:latest
+    container_name: netboot-monitoring
+    volumes:
+      - $HOME/netboot/caching_server_list.json:/etc/telegraf/caching_server_list.json
+    environment:
+      - datadog_secret=#{datadog_secret}#
+      - datadog_url=#{datadog_url}#
+      - netbootServerIP
+    depends_on:
+        - netboot-caching-server-fetcher
+    restart: unless-stopped
+
+  netboot-caching-server-fetcher:
+    image: anymodconrst001dg.azurecr.io/planetexpress/caching-server-fetcher:latest
+    container_name: netboot-caching-server-fetcher
+    environment:
+      - networksServiceURL=#{networksServiceURL}#
+    volumes:
+      - $HOME/netboot/caching_server_list.json:/work/caching_server_list.json
+    restart:
+      unless-stopped
+  netboot-build-ipxe-mac-menus:
+    image: anymodconrst001dg.azurecr.io/planetexpress/netboot-ipxe-menu-generator:latest
+    container_name: netboot-build-ipxe-mac-menus
+    environment:
+      - netbootServerIP
+    volumes:
+      - $HOME/netboot/caching_server_list.json:/work/caching_server_list.json
+      - $HOME/netboot/config/menus:/work/menus
+    depends_on:
+      - netboot-caching-server-fetcher
+    restart:
+      unless-stopped
+    command: /work/buildIpxeMacMenus.sh
+  netboot-build-main-ipxe-menus:
+    image: anymodconrst001dg.azurecr.io/planetexpress/netboot-ipxe-menu-generator:latest
+    container_name: netboot-build-main-ipxe-menus
+    environment:
+      - netbootServerIP
+    volumes:
+      - $HOME/netboot/assets:/assets
+      - $HOME/netboot/config/menus:/menus
+      - $HOME/netboot/caching_server_list.json:/work/caching_server_list.json
+    depends_on:
+      - netboot-caching-server-fetcher
+    restart:
+      unless-stopped
+    command: /work/buildMainIpxeMenus.sh

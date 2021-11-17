@@ -1,0 +1,6 @@
+*.tar
+*id_rsa*
+*.ppk
+*.efi
+*.kpxe
+netboot-services/cachingServerFetcher/caching-server.ipxe
