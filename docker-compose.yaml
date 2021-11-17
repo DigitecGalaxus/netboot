@@ -16,7 +16,6 @@ services:
     user: 1000:1000
     volumes:
       - $HOME/netboot/assets:/assets
-      - $HOME/netboot/caching_server_list.json:/assets/caching_server_list.json
     ports:
       - 80:80 #Assets
     restart: unless-stopped
