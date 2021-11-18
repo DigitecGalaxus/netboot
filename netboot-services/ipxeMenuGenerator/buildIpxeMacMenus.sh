@@ -21,7 +21,7 @@ function buildCachingServerIPXEMenus {
 
     for cachingServerIP in $cachingServerIPs; do
         echo "Copying MAC IPXE file for $cachingServerIP"
-        macAddress=$(jq -r '.cachingServers[] | select(.cachingServerIP=="'"$cachingServerIP"'") | .macAddress' < caching_server_list.json)
+        macAddress=$(jq -r '.cachingServers[] | select(.cachingServerIP=="'"$cachingServerIP"'")' < caching_server_list.json | jq -r --slurp '.[0].macAddress')
         # We need a specific format of the mac address: no separators between the segments
         macAddress=${macAddress//:/}
 
