@@ -47,8 +47,6 @@ if [[ ! -f "$HOME"/netboot/assets/kernels/latest-kernel-version.json ]]; then
         echo '{ "version": "5.8.0-43-generic" }' >"$HOME"/netboot/assets/kernels/latest-kernel-version.json
 fi
 
-cp ./netboot-services/cachingServerFetcher/caching_server_list.json "$HOME"/netboot/caching_server_list.json
-
 if [[ -n "$pemFilePath" ]]; then
         # Copy the key to where the syncer expects it
         cp -f "$pemFilePath" "$HOME"/netboot/caching-server.pem
