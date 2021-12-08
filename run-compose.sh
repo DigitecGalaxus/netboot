@@ -55,6 +55,9 @@ if [[ -n "$pemFilePath" ]]; then
         chmod 600 "$HOME"/netboot/caching-server.pem
 fi
 
+# create empty caching_server_list.json to be mountable by docker
+touch "$HOME"/netboot/caching_server_list.json
+
 # Copy any custom menus into the folder
 cp ./custom-menus/* "$HOME"/netboot/config/menus/
 
