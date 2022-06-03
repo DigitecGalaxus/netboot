@@ -92,7 +92,7 @@ set kernel_url http://${next-server}/kernels/5.11.0-16-generic/
 
 :startboot
 imgfree
-kernel ${kernel_url}vmlinuz ip=dhcp boot=casper netboot=url url=${squash_url} initrd=initrd locale=${language} ${cmdline}
+kernel ${kernel_url}vmlinuz ip=dhcp boot=casper netboot=url url=${squash_url} initrd=initrd locale=${language} ${cmdline} quiet splash
 initrd ${kernel_url}initrd
 boot
 
