@@ -47,13 +47,15 @@ if [[ ! -f "$HOME"/netboot/assets/kernels/latest-kernel-version.json ]]; then
         echo '{ "version": "5.8.0-43-generic" }' >"$HOME"/netboot/assets/kernels/latest-kernel-version.json
 fi
 
-cp ./netboot-services/cachingServerFetcher/caching_server_list.json "$HOME"/netboot/caching_server_list.json
+# create empty caching_server_list.json to be mountable by docker
+touch "$HOME"/netboot/caching_server_list.json
 
 if [[ -n "$pemFilePath" ]]; then
         # Copy the key to where the syncer expects it
         cp -f "$pemFilePath" "$HOME"/netboot/caching-server.pem
         chmod 600 "$HOME"/netboot/caching-server.pem
 fi
+
 
 # Copy any custom menus into the folder
 cp ./custom-menus/* "$HOME"/netboot/config/menus/
