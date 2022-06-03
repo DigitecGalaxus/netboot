@@ -68,6 +68,7 @@ services:
       unless-stopped
   netboot-build-ipxe-mac-menus:
     image: anymodconrst001dg.azurecr.io/planetexpress/netboot-ipxe-menu-generator:latest
+    pull_policy: always
     container_name: netboot-build-ipxe-mac-menus
     environment:
       - netbootServerIP
@@ -81,6 +82,7 @@ services:
     command: /work/buildIpxeMacMenus.sh
   netboot-build-main-ipxe-menus:
     image: anymodconrst001dg.azurecr.io/planetexpress/netboot-ipxe-menu-generator:latest
+    pull_policy: always
     container_name: netboot-build-main-ipxe-menus
     environment:
       - netbootServerIP
