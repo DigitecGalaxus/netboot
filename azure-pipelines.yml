@@ -9,12 +9,14 @@ pool:
 steps:
 - task: Docker@2
   inputs:
-    containerRegistry: 'DG Modules Container Registry'
+    containerRegistry: 'DG ITOps Public Container Registry'
     command: 'login'
     addPipelineData: false
+  displayName: 'Login to docker registry for push'
+
 - task: Docker@2
   inputs:
-    containerRegistry: 'DG Modules Container Registry'
+    containerRegistry: 'DG ITOps Public Container Registry'
     repository: 'planetexpress/netboot-tftp'
     command: 'buildAndPush'
     Dockerfile: './netboot-services/tftp/Dockerfile'
@@ -22,7 +24,7 @@ steps:
     tags: 'latest'
 - task: Docker@2
   inputs:
-    containerRegistry: 'DG Modules Container Registry'
+    containerRegistry: 'DG ITOps Public Container Registry'
     repository: 'planetexpress/netboot-http'
     command: 'buildAndPush'
     Dockerfile: './netboot-services/http/Dockerfile'
@@ -30,7 +32,7 @@ steps:
     tags: 'latest'
 - task: Docker@2
   inputs:
-    containerRegistry: 'DG Modules Container Registry'
+    containerRegistry: 'DG ITOps Public Container Registry'
     repository: 'planetexpress/netboot-cleaner'
     command: 'buildAndPush'
     Dockerfile: './netboot-services/cleaner/Dockerfile'
@@ -38,7 +40,7 @@ steps:
     tags: 'latest'
 - task: Docker@2
   inputs:
-    containerRegistry: 'DG Modules Container Registry'
+    containerRegistry: 'DG ITOps Public Container Registry'
     repository: 'planetexpress/netboot-sync'
     command: 'buildAndPush'
     Dockerfile: './netboot-services/sync/Dockerfile'
@@ -46,7 +48,7 @@ steps:
     tags: 'latest'
 - task: Docker@2
   inputs:
-    containerRegistry: 'DG Modules Container Registry'
+    containerRegistry: 'DG ITOps Public Container Registry'
     repository: 'planetexpress/netboot-monitoring'
     command: 'buildAndPush'
     Dockerfile: './netboot-services/monitoring/Dockerfile'
@@ -54,7 +56,7 @@ steps:
     tags: 'latest'
 - task: Docker@2
   inputs:
-    containerRegistry: 'DG Modules Container Registry'
+    containerRegistry: 'DG ITOps Public Container Registry'
     repository: 'planetexpress/caching-server-fetcher'
     command: 'buildAndPush'
     Dockerfile: './netboot-services/cachingServerFetcher/Dockerfile'
@@ -62,7 +64,7 @@ steps:
     tags: 'latest'
 - task: Docker@2
   inputs:
-    containerRegistry: 'DG Modules Container Registry'
+    containerRegistry: 'DG ITOps Public Container Registry'
     repository: 'planetexpress/netboot-ipxe-menu-generator'
     command: 'buildAndPush'
     Dockerfile: './netboot-services/ipxeMenuGenerator/Dockerfile'
