@@ -2,6 +2,7 @@ version: "3"
 services:
   netboot-tftp:
     image: dgpublicimagesprod.azurecr.io/planetexpress/netboot-tftp:latest
+    pull_policy: always
     container_name: netboot-tftp
     volumes:
       - $HOME/netboot/config:/config
@@ -11,6 +12,7 @@ services:
 
   netboot-http:
     image: dgpublicimagesprod.azurecr.io/planetexpress/netboot-http:latest
+    pull_policy: always
     container_name: netboot-http
     # This corresponds to the `master` user on the netboot server
     user: 1000:1000
@@ -31,7 +33,9 @@ services:
 
   netboot-syncer:
     image: dgpublicimagesprod.azurecr.io/planetexpress/netboot-sync:latest
+    pull_policy: always
     container_name: netboot-syncer
+    user: 1000:1000
     env_file:
       - $HOME/variables.env
     volumes:
