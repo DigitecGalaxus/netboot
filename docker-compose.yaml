@@ -2,7 +2,7 @@ version: "3"
 services:
   netboot-tftp:
     build:
-      context: ./tftp
+      context: ./netboot-services/tftp
       dockerfile: Dockerfile
     # image: anymodconrst001dg.azurecr.io/planetexpress/netboot-tftp:latest
     container_name: netboot-tftp
@@ -14,7 +14,7 @@ services:
 
   netboot-http:
     build:
-      context: ./http
+      context: ./netboot-services/http
       dockerfile: Dockerfile
     # image: anymodconrst001dg.azurecr.io/planetexpress/netboot-http:latest
     container_name: netboot-http
@@ -37,12 +37,12 @@ services:
 
   netboot-syncer:
     build:
-      context: ./sync
+      context: ./netboot-services/sync
       dockerfile: Dockerfile
     # image: anymodconrst001dg.azurecr.io/planetexpress/netboot-sync:latest
     container_name: netboot-syncer
     env_file:
-      - variables.env
+      - $HOME/variables.env
     volumes:
       - $HOME/netboot/assets:/home/syncer/
     # depends_on: 
