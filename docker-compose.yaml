@@ -1,10 +1,7 @@
 version: "3"
 services:
   netboot-tftp:
-    build:
-      context: ./netboot-services/tftp
-      dockerfile: Dockerfile
-    # image: anymodconrst001dg.azurecr.io/planetexpress/netboot-tftp:latest
+    image: dgpublicimagesprod.azurecr.io/planetexpress/netboot-tftp:latest
     container_name: netboot-tftp
     volumes:
       - $HOME/netboot/config:/config
@@ -13,10 +10,7 @@ services:
     restart: unless-stopped
 
   netboot-http:
-    build:
-      context: ./netboot-services/http
-      dockerfile: Dockerfile
-    # image: anymodconrst001dg.azurecr.io/planetexpress/netboot-http:latest
+    image: dgpublicimagesprod.azurecr.io/planetexpress/netboot-http:latest
     container_name: netboot-http
     # This corresponds to the `master` user on the netboot server
     user: 1000:1000
@@ -36,10 +30,7 @@ services:
   #   restart: unless-stopped
 
   netboot-syncer:
-    build:
-      context: ./netboot-services/sync
-      dockerfile: Dockerfile
-    # image: anymodconrst001dg.azurecr.io/planetexpress/netboot-sync:latest
+    image: dgpublicimagesprod.azurecr.io/planetexpress/netboot-sync:latest
     container_name: netboot-syncer
     env_file:
       - $HOME/variables.env
