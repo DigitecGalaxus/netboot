@@ -36,8 +36,8 @@ services:
       - variables.env
     volumes:
       - $HOME/netboot/assets:/home/syncer/
-    depends_on: 
-      - netboot-caching-server-fetcher
+    # depends_on: 
+    #   - netboot-caching-server-fetcher
     restart: unless-stopped
 
   # netboot-monitoring:
