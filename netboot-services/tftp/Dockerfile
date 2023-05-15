@@ -13,15 +13,15 @@ make bin-x86_64-efi/snponly.efi EMBED=custom.ipxe
 
 FROM alpine:3.14.0
 
-RUN apk add --no-cache tftp-hpa
-RUN adduser -S tftp -s /bin/ash -h /home/tftp
-WORKDIR /home/tftp
-USER tftp
+RUN apk add --no-cache tftp-hpa curl
+RUN mkdir -p /srv/tftp/ipxe
 
-COPY --chown=tftp:nogroup --from=bootfiles /build/ipxe/src/bin/undionly.kpxe /home/tftp/undionly.kpxe
-COPY --chown=tftp:nogroup --from=bootfiles /build/ipxe/src/bin-i386-efi/snponly.efi /home/tftp/ipxe32.efi
-COPY --chown=tftp:nogroup --from=bootfiles /build/ipxe/src/bin-x86_64-efi/snponly.efi /home/tftp/ipxe64.efi
+COPY  --from=bootfiles /build/ipxe/src/bin/undionly.kpxe /srv/tftp/undionly.kpxe
+COPY  --from=bootfiles /build/ipxe/src/bin-i386-efi/snponly.efi /srv/tftp/ipxe32.efi
+COPY  --from=bootfiles /build/ipxe/src/bin-x86_64-efi/snponly.efi /srv/tftp/ipxe64.efi
 
+RUN adduser -D tftp -H
+EXPOSE 69/udp
 
 ENTRYPOINT ["/usr/sbin/in.tftpd"]
-CMD ["--foreground", "--listen", "--secure", "/home/tftp", "--blocksize", "1200"]
+CMD ["--foreground", "--listen", "--secure", "/srv/tftp", "--blocksize", "1200", "--user", "tftp"]

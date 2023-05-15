@@ -3,4 +3,4 @@
 :retry_dhcp
 dhcp || goto retry_dhcp
 
-chain --autofree tftp://${next-server}/menu.ipxe || goto retry_dhcp
+chain --autofree tftp://${next-server}/ipxe/menu.ipxe || goto retry_dhcp

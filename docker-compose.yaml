@@ -1,11 +1,11 @@
-version: "3"
+version: "3.3"
 services:
   netboot-tftp:
     image: dgpublicimagesprod.azurecr.io/planetexpress/netboot-tftp:latest
     pull_policy: always
     container_name: netboot-tftp
     volumes:
-      - $HOME/netboot/config:/config
+      - $HOME/netboot/config/menus:/srv/tftp/ipxe
     ports:
       - 69:69/udp #TFTP
     restart: unless-stopped
