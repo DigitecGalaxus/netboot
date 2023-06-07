@@ -7,6 +7,7 @@ import (
 	"os"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/kluctl/go-jinja2"
 )
@@ -17,9 +18,12 @@ type image struct {
 }
 
 func main() {
-	netbootServerIP := os.Getenv("NETBOOT_SERVER_IP")
-	renderMenuIpxe("menu.ipxe.j2", "prod", netbootServerIP)
-	renderAdvancedMenu("advancedmenu.ipxe.j2", netbootServerIP)
+	for {
+		netbootServerIP := os.Getenv("NETBOOT_SERVER_IP")
+		renderMenuIpxe("menu.ipxe.j2", "prod", netbootServerIP)
+		renderAdvancedMenu("advancedmenu.ipxe.j2", netbootServerIP)
+		time.Sleep(60 * time.Second)
+	}
 }
 
 type ByModTime []fs.DirEntry
