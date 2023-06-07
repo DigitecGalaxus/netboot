@@ -10,14 +10,14 @@ item --gap Standard:
 item reboot ${sp} Netboot neu versuchen -> Neustart
 item --gap Production:
 {% for file in prod %}
-item ubuntu-20.04-base-{{ file.imageName }} ${sp} {{ file.imageName }}
+item thinclient-{{ file.imageName }} ${sp} {{ file.imageName }}
 {% endfor %}
 item --gap Development:
 {% for file in dev %}
-item ubuntu-20.04-base-{{ file.imageName }} ${sp} {{ file.imageName }}
+item thinclient-{{ file.imageName }} ${sp} {{ file.imageName }}
 {% endfor %}
 item --gap Cachingserver:
-item ubuntu-20.04-base-netboot-caching-server.squashfs ${sp} netboot-caching-server
+item thinclient-netboot-caching-server.squashfs ${sp} netboot-caching-server
 item --gap Tools:
 item reset_windows ${sp} Notebook Wipe
 item public-netbootxyz ${sp} Public netboot.xyz ||
@@ -67,13 +67,10 @@ chain http://boot.netboot.xyz/ipxe/netboot.xyz-snponly.efi
 #####################
 
 {% for file in prod %}
-:ubuntu-20.04-base-{{ file.imageName }}
+:thinclient-{{ file.imageName }}
 set squash_url http://${next-server}/prod/{{ file.imageName }}.squashfs
-set kernel_url http://${next-server}/kernels/{{ file.kernelFolderName }}/
-# Checking if the json-file for a respective version is available. If not, that means either that the caching-server is down or the files are not synced completely yet as they start with the squashfs-files and finish with the json-files.
-# See netboot-services/syncer
-imgfetch http://${next-server}/prod/{{ file.imageName }}-kernel.json && goto startboot ||
-set next-server {{ netbootServerIP }} && goto ubuntu-20.04-base-{{ file.imageName }}
+set kernel_url http://${next-server}/kernels/{{ file.kernelVersion }}/
+goto startboot
 {% endfor %}
 
 
@@ -82,19 +79,16 @@ set next-server {{ netbootServerIP }} && goto ubuntu-20.04-base-{{ file.imageNam
 ######################
 
 {% for file in dev %}
-:ubuntu-20.04-base-{{ file.imageName }}
+:thinclient-{{ file.imageName }}
 set squash_url http://${next-server}/dev/{{ file.imageName }}.squashfs
-set kernel_url http://${next-server}/kernels/{{ file.kernelFolderName }}/
-# Checking if the json-file for a respective version is available. If not, that means either that the caching-server is down or the files are not synced completely yet as they start with the squashfs-files and finish with the json-files.
-# See netboot-services/syncer
-imgfetch http://${next-server}/dev/{{ file.imageName }}-kernel.json && goto startboot-dev ||
-set next-server {{ netbootServerIP }} && goto ubuntu-20.04-base-{{ file.imageName }}
+set kernel_url http://${next-server}/kernels/{{ file.kernelVersion }}/
+goto startboot-dev
 {% endfor %}
 
 ######################
 # Cachingserver-Images #
 ######################
-:ubuntu-20.04-base-netboot-caching-server.squashfs
+:thinclient-netboot-caching-server.squashfs
 set next-server {{ netbootServerIP }}
 set squash_url http://${next-server}/caching-server/casper/netboot-caching-server.squashfs
 set kernel_url http://${next-server}/kernels/5.11.0-16-generic/
