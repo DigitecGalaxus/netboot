@@ -16,6 +16,7 @@ For the synchronization logic, a few considerations have to be made.
 ## Trigger a resync
 
 It can happen that a full resync of a caching server is needed. For instance when you add a new one. This can be done (on the server hosting the Syncer Docker container) using the following command:
+
 ```bash
 docker exec -it netboot-syncer rsync -avh --exclude=".*" -e "ssh -o 'StrictHostKeyChecking=no' -i /ssh/caching-server.pem" /syncing/ "$cachingServerUsername@<caching-server-IP-here>:$cachingServerAssetsDirectory/"
 ```
