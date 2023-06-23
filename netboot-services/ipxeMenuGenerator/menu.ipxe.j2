@@ -16,7 +16,7 @@ iseq ${netX/gateway} 172.22.224.1 && set language de_DE && goto macboot ||
 set language de_CH
 
 :macboot
-chain --autofree tftp://{{ netbootServerIP }}/MAC-${mac:hexraw}.ipxe || echo Custom boot by MAC not found, going to menu...
+chain --autofree tftp://{{ netbootServerIP }}/ipxe/MAC-${mac:hexraw}.ipxe || echo Custom boot by MAC not found, going to menu...
 
 :initial_menu
 set sp:hex 20 && set sp ${sp:string}
@@ -44,7 +44,7 @@ boot
 
 # Chaining the advanced menu.
 :advanced
-chain --autofree tftp://{{ netbootServerIP }}/advancedmenu.ipxe
+chain --autofree tftp://{{ netbootServerIP }}/ipxe/advancedmenu.ipxe
 
 :localboot
 exit
