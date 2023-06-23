@@ -7,10 +7,10 @@ function buildCachingServerIPXEMenus {
     netbootMenusFolder="$2"
 
     # Setting the specific kernel version
-    # There is a file on the netboot server, which describes the kernel-version for the caching servers.
-    kernelVersion=$(curl -s --connect-timeout 2 "http://$netbootIP/kernels/caching-server-kernel-version.json" | jq -r .version)
+    # There is a file on the netboot server, which describes the latest kernel-version. This version will be used to boot the caching server
+    kernelVersion=$(curl -s --connect-timeout 2 "http://$netbootIP/kernels/latest-kernel-version.json" | jq -r .version)
     if [[ "$kernelVersion" == "" ]]; then
-        echo "Error: could not determine kernel version for the caching servers"
+        echo "Error: could not determine latest kernel version"
         exit 1
     fi
     # Replace the kernelVersion and netbootIP in the ipxe file

@@ -2,14 +2,6 @@
 
 :start
 
-# Caching-Detection: Sets next-server based on the information of caching_server_list.json provided by another source.
-:caching
-{% for server in cachingServers %}
-iseq ${netX/gateway} {{ server.gatewayIP }} && set next-server {{ server.cachingServerIP }} && goto language ||
-{% endfor %}
-# Fallback (when no condition above triggers to set next-server)
-set next-server {{ netbootServerIP }}
-
 # Language-Detection: Set different languages based on the default gateway IP address
 :language
 # Lausanne
@@ -34,19 +26,15 @@ item dg-thinclient-prod ${sp} DG ThinClient
 item --gap Erweitert:
 item advanced ${sp} Erweiterte Bootoptionen
 item reboot ${sp} Neustart
-item --gap Aktuell gesetzter Bootserver: ${next-server}
+item --gap Aktuell gesetzter Bootserver: {{ netbootServerIP }}
 item --gap Aktuell gesetzte Sprache: ${language}
 choose --timeout 10000 initial_choice || goto start
 goto ${initial_choice}
 
 # Bootconfigurtion for our netboot-OS
 :dg-thinclient-prod
-set squash_url http://${next-server}/prod/{{ imageName }}.squashfs
-set kernel_url http://${next-server}/kernels/{{ kernelFolderName }}/
-# Checking if the json-file for a respective version is available. If not, that means either that the caching-server is down or the files are not synced completely yet as they start with the squashfs-files and finish with the json-files.
-# See netboot-services/syncer
-imgfetch http://${next-server}/prod/{{ imageName }}-kernel.json && goto startboot ||
-set next-server {{ netbootServerIP }} && goto dg-thinclient-prod
+set squash_url http://{{ netbootServerIP }}/prod/{{ imageName }}.squashfs
+set kernel_url http://{{ netbootServerIP }}/kernels/{{ kernelFolderName }}/
 
 :startboot
 imgfree
@@ -72,4 +60,3 @@ goto start
 echo Type "exit" to return to menu
 shell
 goto start
-
