@@ -31,13 +31,13 @@ services:
   #     - $HOME/netboot/assets:/cleaning
   #   restart: unless-stopped
 
-  netboot-syncer:
+  netboot-sync:
     image: dgpublicimagesprod.azurecr.io/planetexpress/netboot-sync:latest
     pull_policy: always
-    container_name: netboot-syncer
+    container_name: netboot-sync
     user: 1000:1000
     env_file:
-      - $HOME/variables.env
+      - $HOME/sync.env
     volumes:
       - $HOME/netboot/assets:/home/syncer/
     # depends_on: 
@@ -82,18 +82,15 @@ services:
   #     unless-stopped
   #   command: /work/buildIpxeMacMenus.sh
     
-  # netboot-build-main-ipxe-menus:
-  #   image: anymodconrst001dg.azurecr.io/planetexpress/netboot-ipxe-menu-generator:latest
-  #   pull_policy: always
-  #   container_name: netboot-build-main-ipxe-menus
-  #   environment:
-  #     - netbootServerIP
-  #   volumes:
-  #     - $HOME/netboot/assets:/assets
-  #     - $HOME/netboot/config/menus:/menus
-  #     - $HOME/netboot/caching_server_list.json:/work/caching_server_list.json
-  #   depends_on:
-  #     - netboot-caching-server-fetcher
-  #   restart:
-  #     unless-stopped
-  #   command: /work/buildMainIpxeMenus.sh
+  netboot-build-main-ipxe-menus:
+    image: dgpublicimagesprod.azurecr.io/planetexpress/netboot-ipxe-menu-generator:latest
+    pull_policy: always
+    container_name: netboot-build-main-ipxe-menus
+    env_file:
+      - $HOME/ipxe-menu-generator.env
+    volumes:
+      - $HOME/netboot/assets:/assets
+      - $HOME/netboot/config/menus:/menus
+    restart:
+      unless-stopped
+    command: /work/buildMainIpxeMenus.sh
