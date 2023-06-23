@@ -99,4 +99,4 @@ services:
     container_name: watchtower
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-    command: netboot-build-main-ipxe-menus netboot-http netboot-tftp netboot-sync
+    command: --interval 300 netboot-build-main-ipxe-menus netboot-http netboot-tftp netboot-sync
