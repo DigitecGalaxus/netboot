@@ -17,10 +17,15 @@ type image struct {
 	KernelVersion string `json:"kernelVersion"`
 }
 
+const (
+	DevFolder  = "/assets/dev"
+	ProdFolder = "/assets/prod"
+)
+
 func main() {
 	for {
 		netbootServerIP := os.Getenv("NETBOOT_SERVER_IP")
-		renderMenuIpxe("menu.ipxe.j2", "prod", netbootServerIP)
+		renderMenuIpxe("menu.ipxe.j2", ProdFolder, netbootServerIP)
 		renderAdvancedMenu("advancedmenu.ipxe.j2", netbootServerIP)
 		time.Sleep(60 * time.Second)
 	}
@@ -106,11 +111,11 @@ func renderMenuIpxe(filename string, folderName string, netbootServerIP string) 
 }
 
 func getDevImages() []image {
-	return getImages("dev")
+	return getImages(DevFolder)
 }
 
 func getProdImages() []image {
-	return getImages("prod")
+	return getImages(ProdFolder)
 }
 
 func getImages(folderName string) []image {

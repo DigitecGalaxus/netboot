@@ -93,4 +93,3 @@ services:
       - $HOME/netboot/config/menus:/menus
     restart:
       unless-stopped
-    command: /work/buildMainIpxeMenus.sh
