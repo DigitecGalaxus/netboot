@@ -15,6 +15,9 @@ do
 
   azcopy sync "https://thinclientsimgstore.blob.core.windows.net/prod/$SYNC_SAS_TOKEN" "/home/syncer/prod/" --delete-destination=true
 
+  #Sync kernels
+  azcopy sync "https://thinclientsimgstore.blob.core.windows.net/kernels/$SYNC_SAS_TOKEN" "/home/syncer/kernels/" --delete-destination=true
+
   #random sleep within 5 minutes
   sleep $(( ( RANDOM % 300 )  + 1 ))
   echo "Syncing run processed on $(date)"
