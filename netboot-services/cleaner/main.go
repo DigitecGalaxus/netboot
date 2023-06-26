@@ -88,21 +88,21 @@ func main() {
 			log.Fatal(err)
 		}
 
-		// Calculate disk usage percentage
-		usedSpace := float64(fs.Blocks-fs.Bavail) * float64(fs.Bsize)
-		totalSpace := float64(fs.Blocks) * float64(fs.Bsize)
-		freeSpace := float64(fs.Bavail) * float64(fs.Bsize)
-		usedPercent := (usedSpace / totalSpace) * 100
-		freeSpacePercent := (freeSpace / totalSpace) * 100
+		freeSpace, usedSpace, totalSpace := calculateDiskSpaceUsage()
+
+		log.Infof("Disk free: %.2f%% (%.2f GiB), Disk used: %.2f%% (%.2f GiB), Disk Space total: %.2f GiB", (freeSpace/totalSpace)*100, bytesToGiB(freeSpace), (usedSpace/totalSpace)*100, bytesToGiB(usedSpace), bytesToGiB(totalSpace))
 
 		var folderProperties = []folderProperties{
 			propertiesDev,
 			propertiesProd,
 		}
 
+		log.Infof("Imagecount PreDeletion: ImagesDev (%d) , ImagesProd (%d)", len(getImages(propertiesDev.FolderPath)), len(getImages(propertiesProd.FolderPath)))
+
 		// Delete oldest images until the folder size is below the threshold
 		for _, folderProperty := range folderProperties {
 			images := getImages(folderProperty.FolderPath)
+
 			folderSizeInGiB := getCurrentFolderSizeInGiB(folderProperty.FolderPath)
 
 			for i := len(images) - 1; folderNeedsCleanup(folderProperty, folderSizeInGiB, images); i-- {
@@ -115,17 +115,40 @@ func main() {
 			}
 		}
 
-		log.Infof("Disk free: %.2f%%, Disk used: %.2f%% DevImages: %d, ProdImages: %d. No cleanup necessary.", freeSpacePercent, usedPercent, len(getImages(propertiesDev.FolderPath)), len(getImages(propertiesProd.FolderPath)))
+		freeSpace, usedSpace, totalSpace = calculateDiskSpaceUsage()
+
+		log.Infof("Imagecount PostDeletion: ImagesDev (%d) , ImagesProd (%d)", len(getImages(propertiesDev.FolderPath)), len(getImages(propertiesProd.FolderPath)))
+
+		log.Infof("Disk free: %.2f%% (%.2f GiB), Disk used: %.2f%% (%.2f GiB), Disk Space total: %.2f GiB", (freeSpace/totalSpace)*100, bytesToGiB(freeSpace), (usedSpace/totalSpace)*100, bytesToGiB(usedSpace), bytesToGiB(totalSpace))
+
 		time.Sleep(5 * time.Minute)
 	}
 }
 
 func folderNeedsCleanup(folderProperties folderProperties, currentFolderSize float64, allImages []image) bool {
 	if folderProperties.MaxFolderSizeInGiB < currentFolderSize || folderProperties.ThresholdMaxImagesCount < len(allImages) {
-		log.Info("Folder needs cleanup, going to delete oldest image")
 		return true
 	}
 	return false
+}
+
+func calculateDiskSpaceUsage() (float64, float64, float64) {
+	fs := syscall.Statfs_t{}
+	err := syscall.Statfs("/", &fs)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	usedSpace := float64(fs.Blocks-fs.Bavail) * float64(fs.Bsize)
+	totalSpace := float64(fs.Blocks) * float64(fs.Bsize)
+	freeSpace := float64(fs.Bavail) * float64(fs.Bsize)
+
+	return freeSpace, usedSpace, totalSpace
+}
+
+// func to convert bytes to GiB
+func bytesToGiB(bytes float64) float64 {
+	return bytes / 1024 / 1024 / 1024
 }
 
 func (b ByModTime) Len() int      { return len(b) }
