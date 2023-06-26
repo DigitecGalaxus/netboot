@@ -22,14 +22,16 @@ services:
       - 80:80 #Assets
     restart: unless-stopped
 
-  # netboot-cleaner:
-  #   image: anymodconrst001dg.azurecr.io/planetexpress/netboot-cleaner:latest
-  #   container_name: netboot-cleaner
-  #   # This corresponds to the `master` user on the netboot server
-  #   user: 1000:1000
-  #   volumes:
-  #     - $HOME/netboot/assets:/cleaning
-  #   restart: unless-stopped
+  netboot-cleaner:
+    image: dgpublicimagesprod.azurecr.io/planetexpress/netboot-cleaner:latest
+    container_name: netboot-cleaner
+    # This corresponds to the `master` user on the netboot server
+    user: 1000:1000
+    env_file:
+      - $HOME/cleaner.env
+    volumes:
+      - $HOME/netboot/assets:/cleaning
+    restart: unless-stopped
 
   netboot-sync:
     image: dgpublicimagesprod.azurecr.io/planetexpress/netboot-sync:latest
@@ -56,31 +58,6 @@ services:
   #   depends_on:
   #       - netboot-caching-server-fetcher
   #   restart: unless-stopped
-
-  # netboot-caching-server-fetcher:
-  #   image: anymodconrst001dg.azurecr.io/planetexpress/caching-server-fetcher:latest
-  #   container_name: netboot-caching-server-fetcher
-  #   environment:
-  #     - networksServiceURL=#{networksServiceURL}#
-  #   volumes:
-  #     - $HOME/netboot/caching_server_list.json:/work/caching_server_list.json
-  #   restart:
-  #     unless-stopped
-
-  # netboot-build-ipxe-mac-menus:
-  #   image: anymodconrst001dg.azurecr.io/planetexpress/netboot-ipxe-menu-generator:latest
-  #   pull_policy: always
-  #   container_name: netboot-build-ipxe-mac-menus
-  #   environment:
-  #     - netbootServerIP
-  #   volumes:
-  #     - $HOME/netboot/caching_server_list.json:/work/caching_server_list.json
-  #     - $HOME/netboot/config/menus:/work/menus
-  #   depends_on:
-  #     - netboot-caching-server-fetcher
-  #   restart:
-  #     unless-stopped
-  #   command: /work/buildIpxeMacMenus.sh
     
   netboot-build-main-ipxe-menus:
     image: dgpublicimagesprod.azurecr.io/planetexpress/netboot-ipxe-menu-generator:latest
