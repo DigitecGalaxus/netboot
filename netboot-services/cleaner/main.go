@@ -76,6 +76,11 @@ func main() {
 	}
 
 	for {
+		// display Stats
+		log.Infof("Routine started at %s", time.Now().Format(time.RFC3339))
+		log.Infof("Dev folder: %s, ThresholdMaxImagesCount: %d, MaxFolderSizeInGiB: %.2f", propertiesDev.FolderPath, propertiesDev.ThresholdMaxImagesCount, propertiesDev.MaxFolderSizeInGiB)
+		log.Infof("Prod folder: %s, ThresholdMaxImagesCount: %d, MaxFolderSizeInGiB: %.2f", propertiesProd.FolderPath, propertiesProd.ThresholdMaxImagesCount, propertiesProd.MaxFolderSizeInGiB)
+
 		// Get disk usage for the root directory
 		fs := syscall.Statfs_t{}
 		err := syscall.Statfs("/", &fs)
@@ -117,6 +122,7 @@ func main() {
 
 func folderNeedsCleanup(folderProperties folderProperties, currentFolderSize float64, allImages []image) bool {
 	if folderProperties.MaxFolderSizeInGiB < currentFolderSize || folderProperties.ThresholdMaxImagesCount < len(allImages) {
+		log.Info("Folder needs cleanup, going to delete oldest image")
 		return true
 	}
 	return false
