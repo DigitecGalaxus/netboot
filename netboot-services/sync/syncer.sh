@@ -10,13 +10,13 @@ fi
 while true
 do
   if [ "$SYNC_DEV" ]; then
-    azcopy sync "https://thinclientsimgstore.blob.core.windows.net/dev/$SYNC_SAS_TOKEN" "/home/syncer/dev/" --delete-destination=true
+    azcopy copy "https://thinclientsimgstore.blob.core.windows.net/dev/$SYNC_SAS_TOKEN" "/home/syncer/dev/" --overwrite=ifSourceNewer
   fi
 
-  azcopy sync "https://thinclientsimgstore.blob.core.windows.net/prod/$SYNC_SAS_TOKEN" "/home/syncer/prod/" --delete-destination=true
+  azcopy copy "https://thinclientsimgstore.blob.core.windows.net/prod/$SYNC_SAS_TOKEN" "/home/syncer/prod/" -overwrite=ifSourceNewer
 
   #Sync kernels
-  azcopy sync "https://thinclientsimgstore.blob.core.windows.net/kernels/$SYNC_SAS_TOKEN" "/home/syncer/kernels/" --delete-destination=true
+  azcopy copy "https://thinclientsimgstore.blob.core.windows.net/kernels/$SYNC_SAS_TOKEN" "/home/syncer/kernels/" -overwrite=ifSourceNewer
 
   #random sleep within 5 minutes
   sleep $(( ( RANDOM % 300 )  + 1 ))
