@@ -35,7 +35,7 @@ function formatInfluxData() {
 
 ## Main Script ##
 
-filesToTest=("undionly.kpxe" "ipxe32.efi" "ipxe64.efi" "menu.ipxe")
+filesToTest=("undionly.kpxe" "ipxe32.efi" "ipxe64.efi" "ipxe/menu.ipxe")
 
 for fileToTest in "${filesToTest[@]}"; do
         tftpConnectWithEchoInfluxOutput "$netbootServer" "$fileToTest"
