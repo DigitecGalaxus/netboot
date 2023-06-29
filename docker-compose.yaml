@@ -42,22 +42,15 @@ services:
       - $HOME/sync.env
     volumes:
       - $HOME/netboot/assets:/home/syncer/
-    # depends_on: 
-    #   - netboot-caching-server-fetcher
     restart: unless-stopped
 
-  # netboot-monitoring:
-  #   image: anymodconrst001dg.azurecr.io/planetexpress/netboot-monitoring:latest
-  #   container_name: netboot-monitoring
-  #   volumes:
-  #     - $HOME/netboot/caching_server_list.json:/etc/telegraf/caching_server_list.json
-  #   environment:
-  #     - datadog_secret=#{datadog_secret}#
-  #     - datadog_url=#{datadog_url}#
-  #     - netbootServerIP
-  #   depends_on:
-  #       - netboot-caching-server-fetcher
-  #   restart: unless-stopped
+  netboot-monitoring:
+    image: dgpublicimagesprod.azurecr.io/planetexpress/netboot-monitoring:latest
+    container_name: netboot-monitoring
+    env_file:
+      - $HOME/monitoring.env
+
+    restart: unless-stopped
     
   netboot-build-main-ipxe-menus:
     image: dgpublicimagesprod.azurecr.io/planetexpress/netboot-ipxe-menu-generator:latest
@@ -76,4 +69,4 @@ services:
     container_name: watchtower
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-    command: --interval 300 netboot-build-main-ipxe-menus netboot-http netboot-tftp netboot-sync
+    command: --interval 300 netboot-build-main-ipxe-menus netboot-http netboot-tftp netboot-sync netboot-monitoring netboot-cleaner
