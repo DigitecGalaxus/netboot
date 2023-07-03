@@ -27,6 +27,7 @@ func main() {
 		netbootServerIP := os.Getenv("NETBOOT_SERVER_IP")
 		renderMenuIpxe("menu.ipxe.j2", ProdFolder, netbootServerIP)
 		renderAdvancedMenu("advancedmenu.ipxe.j2", netbootServerIP)
+		renderNetinfoMenu("netinfo.ipxe.j2")
 		time.Sleep(60 * time.Second)
 	}
 }
@@ -153,6 +154,23 @@ func renderAdvancedMenu(filename string, netbootServerIP string) {
 		jinja2.WithGlobal("prod", prodImages),
 		jinja2.WithGlobal("dev", devImages),
 	)
+	if err != nil {
+		panic(err)
+	}
+	defer j2.Close()
+
+	renderedString, err := j2.RenderFile(filename)
+	if err != nil {
+		panic(err)
+	}
+
+	filePath := fmt.Sprintf("/menus/%s", strings.ReplaceAll(filename, ".j2", ""))
+	os.WriteFile(filePath, []byte(renderedString), 0644)
+	fmt.Printf("filename: %s\nresult: %s", filename, renderedString)
+}
+
+func renderNetinfoMenu(filename string) {
+	j2, err := jinja2.NewJinja2("netinfo.ipxe", 1)
 	if err != nil {
 		panic(err)
 	}

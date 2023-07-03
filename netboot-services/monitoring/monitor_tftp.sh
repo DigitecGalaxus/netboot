@@ -9,7 +9,11 @@ function tftpConnectWithEchoInfluxOutput() {
         tftpHostName="$1"
         tftpServerTestFile="$2"
 
-        atftp -g -r "$tftpServerTestFile" -l /tmp/"$tftpServerTestFile" "$tftpHostName" >/dev/null 2>&1
+        if [[ $tftpServerTestFile == "menu.ipxe"  ]]; then
+                atftp -g -r "ipxe/$tftpServerTestFile" -l /tmp/"$tftpServerTestFile" "$tftpHostName" >/dev/null 2>&1
+        else 
+                atftp -g -r "$tftpServerTestFile" -l /tmp/"$tftpServerTestFile" "$tftpHostName" >/dev/null 2>&1
+        fi
 
         # -s checks if the file is available and is not empty.
 
@@ -35,7 +39,7 @@ function formatInfluxData() {
 
 ## Main Script ##
 
-filesToTest=("undionly.kpxe" "ipxe32.efi" "ipxe64.efi" "ipxe/menu.ipxe")
+filesToTest=("undionly.kpxe" "ipxe32.efi" "ipxe64.efi" "menu.ipxe")
 
 for fileToTest in "${filesToTest[@]}"; do
         tftpConnectWithEchoInfluxOutput "$netbootServer" "$fileToTest"

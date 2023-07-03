@@ -3,6 +3,7 @@ RUN apk add --no-cache bash gcc binutils make perl xz-libs xz-dev mtools git lib
 WORKDIR /build
 # Clone iPXE
 RUN git clone git://git.ipxe.org/ipxe.git
+RUN sed -i 's/#undef\tDOWNLOAD_PROTO_HTTPS/#define\ DOWNLOAD_PROTO_HTTPS/' ipxe/src/config/general.h
 # Include custom logic
 COPY custom.ipxe ipxe/src/custom.ipxe
 # Run the builds

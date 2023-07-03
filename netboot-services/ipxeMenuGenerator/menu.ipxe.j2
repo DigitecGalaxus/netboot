@@ -5,13 +5,13 @@
 # Language-Detection: Set different languages based on the default gateway IP address
 :language
 # Lausanne
-iseq ${netX/gateway} 172.20.72.1 && set language fr_CH && goto macboot ||
+iseq ${netX/gateway} 172.20.72.1 && set language fr_CH && goto initial_menu ||
 # Genf
-iseq ${netX/gateway} 172.20.56.1 && set language fr_CH && goto macboot ||
+iseq ${netX/gateway} 172.20.56.1 && set language fr_CH && goto initial_menu ||
 # Krefeld
-iseq ${netX/gateway} 172.22.32.1 && set language de_DE && goto macboot ||
+iseq ${netX/gateway} 172.22.32.1 && set language de_DE && goto initial_menu ||
 # Odilia
-iseq ${netX/gateway} 172.22.224.1 && set language de_DE && goto macboot ||
+iseq ${netX/gateway} 172.22.224.1 && set language de_DE && goto initial_menu ||
 # Fallback (when no condition above triggers to set next-server)
 set language de_CH
 
