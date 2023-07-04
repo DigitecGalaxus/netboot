@@ -40,6 +40,20 @@ var (
 
 type ByModTime []fs.DirEntry
 
+func (b ByModTime) Len() int      { return len(b) }
+func (b ByModTime) Swap(i, j int) { b[i], b[j] = b[j], b[i] }
+func (b ByModTime) Less(i, j int) bool {
+	infoI, err := b[i].Info()
+	if err != nil {
+		log.Errorf("Error getting file info for %s: %s", b[i].Name(), err)
+	}
+	infoJ, err := b[j].Info()
+	if err != nil {
+		log.Errorf("Error getting file info for %s: %s", b[j].Name(), err)
+	}
+	return infoI.ModTime().After(infoJ.ModTime())
+}
+
 func main() {
 	var err error
 	ThresholdMaxImagesCountDevEnv := os.Getenv("THRESHOLD_MAX_IMAGES_COUNT_DEV")
@@ -151,20 +165,6 @@ func bytesToGiB(bytes float64) float64 {
 	return bytes / 1024 / 1024 / 1024
 }
 
-func (b ByModTime) Len() int      { return len(b) }
-func (b ByModTime) Swap(i, j int) { b[i], b[j] = b[j], b[i] }
-func (b ByModTime) Less(i, j int) bool {
-	infoI, err := b[i].Info()
-	if err != nil {
-		log.Errorf("Error getting file info for %s: %s", b[i].Name(), err)
-	}
-	infoJ, err := b[j].Info()
-	if err != nil {
-		log.Errorf("Error getting file info for %s: %s", b[j].Name(), err)
-	}
-	return infoI.ModTime().After(infoJ.ModTime())
-}
-
 func getImages(folderName string) []image {
 	var images []image
 	// var folderExists bool
@@ -178,6 +178,10 @@ func getImages(folderName string) []image {
 	var matches []fs.DirEntry
 	for _, file := range files {
 		if strings.HasSuffix(file.Name(), ".squashfs") {
+			//if string starts with ".azDownload" ignore
+			if strings.HasPrefix(file.Name(), ".azDownload") {
+				continue
+			}
 			matches = append(matches, file)
 		}
 	}

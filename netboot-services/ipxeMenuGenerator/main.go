@@ -76,6 +76,11 @@ type kernelVersion struct {
 
 func getMatchingKernelVersion(folderName string, imageName string) string {
 	var version kernelVersion
+
+	if strings.HasPrefix(folderName, ".azDownload") {
+		return ""
+	}
+
 	bytes, err := os.ReadFile(fmt.Sprintf("%s/%s-kernel.json", folderName, imageName))
 	if err != nil {
 		panic(err)
@@ -90,6 +95,9 @@ func getMatchingKernelVersion(folderName string, imageName string) string {
 func renderMenuIpxe(filename string, folderName string, netbootServerIP string) {
 	mostRecentSquashfsImageName := getMostRecentSquashfsImage(folderName)
 	kernelVersionString := getMatchingKernelVersion(folderName, mostRecentSquashfsImageName)
+	if kernelVersionString == "" {
+		return
+	}
 
 	j2, err := jinja2.NewJinja2("menu.ipxe", 1,
 		jinja2.WithGlobal("netbootServerIP", netbootServerIP),
@@ -131,6 +139,9 @@ func getImages(folderName string) []image {
 	var matches []fs.DirEntry
 	for _, file := range files {
 		if strings.HasSuffix(file.Name(), ".squashfs") {
+			if strings.HasPrefix(file.Name(), ".azDownload") {
+				continue
+			}
 			matches = append(matches, file)
 		}
 	}
