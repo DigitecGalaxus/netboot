@@ -12,16 +12,21 @@ if [ -z "$SYNC_BLOB_URL" ]; then
   exit 1
 fi
 
+if [ -z "$SYNC_BANDWITDH_LIMIT_MBITS" ]; then
+  echo "SYNC_BANDWITDH_LIMIT is not set"
+  SYNC_BANDWITDH_LIMIT_MBITS=300
+fi
+
 while true
 do
   if [ "$SYNC_DEV" ]; then
-    azcopy cp "$SYNC_BLOB_URL/dev/*$SYNC_SAS_TOKEN" "/home/syncer/dev/" --overwrite=ifSourceNewer --recursive
+    azcopy cp --cap-mbps "$SYNC_BANDWITDH_LIMIT_MBITS" "$SYNC_BLOB_URL/dev/*$SYNC_SAS_TOKEN" "/home/syncer/dev/" --overwrite=ifSourceNewer --recursive
   fi
  
-  azcopy cp "$SYNC_BLOB_URL/prod/*$SYNC_SAS_TOKEN" "/home/syncer/prod/" --overwrite=ifSourceNewer --recursive
+  azcopy cp --cap-mbps "$SYNC_BANDWITDH_LIMIT_MBITS" "$SYNC_BLOB_URL/prod/*$SYNC_SAS_TOKEN" "/home/syncer/prod/" --overwrite=ifSourceNewer --recursive
 
   #Sync kernels
-  azcopy cp "$SYNC_BLOB_URL/kernels/*$SYNC_SAS_TOKEN" "/home/syncer/kernels/" --overwrite=ifSourceNewer --recursive
+  azcopy cp --cap-mbps "$SYNC_BANDWITDH_LIMIT_MBITS" "$SYNC_BLOB_URL/kernels/*$SYNC_SAS_TOKEN" "/home/syncer/kernels/" --overwrite=ifSourceNewer --recursive
 
   #random sleep within 5 minutes
   sleep $(( ( RANDOM % 300 )  + 1 ))

@@ -62,10 +62,3 @@ services:
       - $HOME/netboot/config/menus:/menus
     restart:
       unless-stopped
-
-  watchtower:
-    image: containrrr/watchtower
-    container_name: watchtower
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    command: --interval 300 netboot-build-main-ipxe-menus netboot-http netboot-tftp netboot-sync netboot-monitoring netboot-cleaner
