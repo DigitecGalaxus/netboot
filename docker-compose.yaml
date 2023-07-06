@@ -25,6 +25,7 @@ services:
   netboot-cleaner:
     image: dgpublicimagesprod.azurecr.io/planetexpress/netboot-cleaner:latest
     container_name: netboot-cleaner
+    pull_policy: always
     # This corresponds to the `master` user on the netboot server
     user: 1000:1000
     env_file:

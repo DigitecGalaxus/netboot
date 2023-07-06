@@ -1,6 +1,6 @@
 # IPXE Menu Generator
 
-This container consumes the `NETBOOT_SERVER_IP` that is passed via an environment variable and produces an IPXE menu. It taks the templates and generates the menu based on the files available in the `assets` folder. It checks for a `dev` and `prod` folder and generates the menu based on the files in there. The menu is then written to the `config/menus` folder.
+This container consumes the `NETBOOT_SERVER_IP` that is passed via an environment variable and produces an IPXE menu. It takes the templates and generates the menu based on the files available in the `assets` folder. It checks for a `dev` and `prod` folder and generates the menu based on the files in there. The menu is then written to the `config/menus` folder.
 
 ## MAC specific booting
 

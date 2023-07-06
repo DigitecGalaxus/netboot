@@ -7,5 +7,5 @@ The container continously cleans this folders `prod`, `dev` subfolders, to ensur
 To locally test the container, run the following command:
 
 ```bash
-docker run --rm -d -v ~/$PWD:/cleaning  --name netboot-cleaner dgpublicimagesprod.azurecr.io/planetexpress/netboot-cleaner
+docker run --rm -d -v $(pwd):/cleaning  --name netboot-cleaner dgpublicimagesprod.azurecr.io/planetexpress/netboot-cleaner
 ```

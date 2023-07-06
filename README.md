@@ -52,7 +52,7 @@ Directory tree on `~/` of the netboot server:
 
 ## How it works
 
-We provision the six services using the [docker-compose.yaml](/docker-compose.yaml) file. This requires the docker images to be present on the host. Those can be either pulled from our public registry or build manually. Make set the correct environment variables in the `.env` files. Bring your stack up with `docker compose up -d`.
+We provision the six services using the [docker-compose.yaml](/docker-compose.yaml) file. This requires the docker images to be present on the host. Those can be either pulled from our public registry or built manually. Set the correct environment variables in the `.env` files. Bring your stack up with `docker compose up -d`.
 
 ```bash
 docker image build -t dgpublicimagesprod.azurecr.io/planetexpress/netboot-tftp:latest ./netboot-services/tftp/
