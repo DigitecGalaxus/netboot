@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	log "github.com/sirupsen/logrus"
+
 	"github.com/kluctl/go-jinja2"
 )
 
@@ -23,11 +25,27 @@ const (
 )
 
 func main() {
+	log.SetLevel(log.InfoLevel)
+	log.SetFormatter(&log.JSONFormatter{})
+
 	for {
 		netbootServerIP := os.Getenv("NETBOOT_SERVER_IP")
+		if netbootServerIP == "" {
+			log.Fatal("NETBOOT_SERVER_IP not set")
+		}
+
 		renderMenuIpxe("menu.ipxe.j2", ProdFolder, netbootServerIP)
-		renderAdvancedMenu("advancedmenu.ipxe.j2", netbootServerIP)
-		renderNetinfoMenu("netinfo.ipxe.j2")
+
+		err := renderAdvancedMenu("advancedmenu.ipxe.j2", netbootServerIP)
+		if err != nil {
+			log.Error(err)
+		}
+
+		err = renderNetinfoMenu("netinfo.ipxe.j2")
+		if err != nil {
+			log.Error(err)
+		}
+
 		time.Sleep(60 * time.Second)
 	}
 }
@@ -39,11 +57,11 @@ func (b ByModTime) Swap(i, j int) { b[i], b[j] = b[j], b[i] }
 func (b ByModTime) Less(i, j int) bool {
 	infoI, err := b[i].Info()
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 	infoJ, err := b[j].Info()
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 	return infoI.ModTime().After(infoJ.ModTime())
 }
@@ -51,8 +69,7 @@ func (b ByModTime) Less(i, j int) bool {
 func getMostRecentSquashfsImage(folderName string) string {
 	files, err := os.ReadDir(folderName)
 	if err != nil {
-		fmt.Println("Error:", err)
-		panic(err)
+		log.Fatal(err)
 	}
 
 	var matches []fs.DirEntry
@@ -74,29 +91,25 @@ type kernelVersion struct {
 	KernelVersion string `json:"version"`
 }
 
-func getMatchingKernelVersion(folderName string, imageName string) string {
+func getMatchingKernelVersion(folderName string, imageName string) (string, error) {
 	var version kernelVersion
-
-	if strings.HasPrefix(folderName, ".azDownload") {
-		return ""
-	}
 
 	bytes, err := os.ReadFile(fmt.Sprintf("%s/%s-kernel.json", folderName, imageName))
 	if err != nil {
-		panic(err)
+		return "", err
 	}
 	err = json.Unmarshal(bytes, &version)
 	if err != nil {
-		panic(err)
+		return "", err
 	}
-	return version.KernelVersion
+	return version.KernelVersion, err
 }
 
 func renderMenuIpxe(filename string, folderName string, netbootServerIP string) {
 	mostRecentSquashfsImageName := getMostRecentSquashfsImage(folderName)
-	kernelVersionString := getMatchingKernelVersion(folderName, mostRecentSquashfsImageName)
-	if kernelVersionString == "" {
-		return
+	kernelVersionString, err := getMatchingKernelVersion(folderName, mostRecentSquashfsImageName)
+	if err != nil {
+		log.Fatalf("could not find matching kernel version to the provided squashFSImage %s. Error: %s", mostRecentSquashfsImageName, err)
 	}
 
 	j2, err := jinja2.NewJinja2("menu.ipxe", 1,
@@ -105,18 +118,22 @@ func renderMenuIpxe(filename string, folderName string, netbootServerIP string) 
 		jinja2.WithGlobal("kernelFolderName", kernelVersionString),
 	)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 	defer j2.Close()
 
 	renderedString, err := j2.RenderFile(filename)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	filePath := fmt.Sprintf("/menus/%s", strings.ReplaceAll(filename, ".j2", ""))
-	os.WriteFile(filePath, []byte(renderedString), 0644)
-	fmt.Printf("filename: %s\nresult: %s", filename, renderedString)
+	err = os.WriteFile(filePath, []byte(renderedString), 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	log.Debugf("filename: %s\nresult: %s", filename, renderedString)
 }
 
 func getDevImages() []image {
@@ -136,28 +153,32 @@ func getImages(folderName string) []image {
 		panic(err)
 	}
 
-	var matches []fs.DirEntry
+	var squashfsFiles []fs.DirEntry
 	for _, file := range files {
 		if strings.HasSuffix(file.Name(), ".squashfs") {
 			if strings.HasPrefix(file.Name(), ".azDownload") {
 				continue
 			}
-			matches = append(matches, file)
+			squashfsFiles = append(squashfsFiles, file)
 		}
 	}
 
-	sort.Sort(ByModTime(matches))
+	sort.Sort(ByModTime(squashfsFiles))
 
-	for _, file := range matches {
+	for _, file := range squashfsFiles {
 		imageName := strings.TrimSuffix(file.Name(), ".squashfs")
-		kernelVersionString := getMatchingKernelVersion(folderName, imageName)
+		kernelVersionString, err := getMatchingKernelVersion(folderName, imageName)
+		if err != nil {
+			log.Errorf("could not find matching kernel version to the provided squashFSImage %s. Error: %s", imageName, err)
+		}
+
 		images = append(images, image{ImageName: imageName, KernelVersion: kernelVersionString})
 	}
 
 	return images
 }
 
-func renderAdvancedMenu(filename string, netbootServerIP string) {
+func renderAdvancedMenu(filename string, netbootServerIP string) error {
 	prodImages := getProdImages()
 	devImages := getDevImages()
 	j2, err := jinja2.NewJinja2("advancedmenu.ipxe", 1,
@@ -166,33 +187,43 @@ func renderAdvancedMenu(filename string, netbootServerIP string) {
 		jinja2.WithGlobal("dev", devImages),
 	)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	defer j2.Close()
 
 	renderedString, err := j2.RenderFile(filename)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	filePath := fmt.Sprintf("/menus/%s", strings.ReplaceAll(filename, ".j2", ""))
-	os.WriteFile(filePath, []byte(renderedString), 0644)
-	fmt.Printf("filename: %s\nresult: %s", filename, renderedString)
+	err = os.WriteFile(filePath, []byte(renderedString), 0644)
+	if err != nil {
+		return err
+	}
+	log.Debugf("filename: %s\nresult: %s", filename, renderedString)
+
+	return nil
 }
 
-func renderNetinfoMenu(filename string) {
+func renderNetinfoMenu(filename string) error {
 	j2, err := jinja2.NewJinja2("netinfo.ipxe", 1)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	defer j2.Close()
 
 	renderedString, err := j2.RenderFile(filename)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	filePath := fmt.Sprintf("/menus/%s", strings.ReplaceAll(filename, ".j2", ""))
-	os.WriteFile(filePath, []byte(renderedString), 0644)
-	fmt.Printf("filename: %s\nresult: %s", filename, renderedString)
+	err = os.WriteFile(filePath, []byte(renderedString), 0644)
+	if err != nil {
+		return err
+	}
+	log.Debugf("filename: %s\nresult: %s", filename, renderedString)
+
+	return nil
 }

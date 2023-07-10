@@ -4,8 +4,8 @@ RUN mkdir -p /tmp
 WORKDIR /tmp
 RUN wget https://aka.ms/downloadazcopy-v10-linux
 RUN tar -xvf downloadazcopy-v10-linux
-RUN mv azcopy_linux_amd64_*/azcopy /usr/local/bin/
-RUN chmod +x /usr/local/bin/azcopy
+RUN mv azcopy_linux_amd64_*/azcopy /usr/local/bin/ &&\
+    chmod +x /usr/local/bin/azcopy
 
 RUN adduser -S syncer -u 1000 -s /bin/ash -h /home/syncer
 WORKDIR /home/syncer

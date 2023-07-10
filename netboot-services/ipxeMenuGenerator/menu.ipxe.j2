@@ -26,7 +26,7 @@ item dg-thinclient-prod ${sp} DG ThinClient
 item --gap Erweitert:
 item advanced ${sp} Erweiterte Bootoptionen
 item reboot ${sp} Neustart
-item --gap Aktuell gesetzter Bootserver: {{ netbootServerIP }}
+item --gap Aktuell gesetzter Bootserver: ${next-server}
 item --gap Aktuell gesetzte Sprache: ${language}
 choose --timeout 10000 initial_choice || goto start
 goto ${initial_choice}

@@ -3,4 +3,5 @@
 :retry_dhcp
 dhcp || goto retry_dhcp
 
+# the next-server variable is provided by the dhcp server
 chain --autofree tftp://${next-server}/ipxe/menu.ipxe || goto retry_dhcp

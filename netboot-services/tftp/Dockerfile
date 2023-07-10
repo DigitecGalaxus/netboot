@@ -1,4 +1,4 @@
-FROM alpine:3.14.0 as bootfiles
+FROM alpine:3.18 as bootfiles
 RUN apk add --no-cache bash gcc binutils make perl xz-libs xz-dev mtools git libc-dev
 WORKDIR /build
 # Clone iPXE
@@ -12,7 +12,7 @@ RUN cd ipxe/src && make bin/undionly.kpxe EMBED=custom.ipxe && \
 make bin-i386-efi/snponly.efi EMBED=custom.ipxe && \
 make bin-x86_64-efi/snponly.efi EMBED=custom.ipxe
 
-FROM alpine:3.14.0
+FROM alpine:3.18
 
 RUN apk add --no-cache tftp-hpa curl
 RUN mkdir -p /srv/tftp/ipxe

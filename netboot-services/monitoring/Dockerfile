@@ -1,6 +1,6 @@
 FROM telegraf:1.27.1
 
-RUN apt-get -qq update && apt-get -qq upgrade -y && apt-get -qq install jq atftp -y
+RUN export DEBIAN_FRONTEND=noninteractive && apt-get -qq update && apt-get -qq upgrade -y && apt-get -qq install jq atftp -y
 
 RUN adduser --system nonroot
 USER nonroot

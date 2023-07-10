@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io/fs"
+	"math"
 	"os"
 	"path/filepath"
 	"sort"
@@ -15,26 +16,27 @@ import (
 )
 
 type image struct {
-	ImageName         string `json:"imageName"`
-	KernelVersionFile string `json:"KernelVersionFile"`
+	ImageName         string
+	KernelVersionFile string
 }
 
 type folderProperties struct {
-	FolderPath              string  // relative path to the folder
-	ThresholdMaxImagesCount int     // max number of images to keep in the folder. Define n+1 images to keep n images (due to indexing starting at 0)
+	FolderPath              string
+	ThresholdMaxImagesCount int     // max number of images to keep in the folder.
 	MaxFolderSizeInGiB      float64 // max folder size in GiB
 }
 
 var (
 	propertiesDev = folderProperties{
 		FolderPath:              "/cleaning/dev",
-		ThresholdMaxImagesCount: 10,
-		MaxFolderSizeInGiB:      15,
+		ThresholdMaxImagesCount: 10, // default value that will be overwritten by environment variables, if set
+		MaxFolderSizeInGiB:      15, // default value that will be overwritten by environment variables, if set
+
 	}
 	propertiesProd = folderProperties{
 		FolderPath:              "/cleaning/prod",
-		ThresholdMaxImagesCount: 5,
-		MaxFolderSizeInGiB:      10,
+		ThresholdMaxImagesCount: 5,  // default value that will be overwritten by environment variables, if set
+		MaxFolderSizeInGiB:      10, // default value that will be overwritten by environment variables, if set
 	}
 )
 
@@ -55,6 +57,9 @@ func (b ByModTime) Less(i, j int) bool {
 }
 
 func main() {
+	log.SetLevel(log.InfoLevel)
+	log.SetFormatter(&log.JSONFormatter{})
+
 	var err error
 	ThresholdMaxImagesCountDevEnv := os.Getenv("THRESHOLD_MAX_IMAGES_COUNT_DEV")
 	if ThresholdMaxImagesCountDevEnv != "" {
@@ -77,7 +82,7 @@ func main() {
 		propertiesDev.MaxFolderSizeInGiB, err = strconv.ParseFloat(maxFolderSizeInGiBdevEnv, 64)
 
 		if err != nil {
-			log.Error(err)
+			log.Fatal(err)
 		}
 	}
 
@@ -85,37 +90,33 @@ func main() {
 	if maxFolderSizeInGiBProdEnv != "" {
 		propertiesProd.MaxFolderSizeInGiB, err = strconv.ParseFloat(maxFolderSizeInGiBProdEnv, 64)
 		if err != nil {
-			log.Error(err)
+			log.Fatal(err)
 		}
 	}
 
+	// display the current configuration
+	log.Infof("Dev folder: %s, ThresholdMaxImagesCount: %d, MaxFolderSizeInGiB: %.2f", propertiesDev.FolderPath, propertiesDev.ThresholdMaxImagesCount, propertiesDev.MaxFolderSizeInGiB)
+	log.Infof("Prod folder: %s, ThresholdMaxImagesCount: %d, MaxFolderSizeInGiB: %.2f", propertiesProd.FolderPath, propertiesProd.ThresholdMaxImagesCount, propertiesProd.MaxFolderSizeInGiB)
+
+	var folderProperties = []folderProperties{
+		propertiesDev,
+		propertiesProd,
+	}
+
 	for {
-		// display Stats
-		log.Infof("Routine started at %s", time.Now().Format(time.RFC3339))
-		log.Infof("Dev folder: %s, ThresholdMaxImagesCount: %d, MaxFolderSizeInGiB: %.2f", propertiesDev.FolderPath, propertiesDev.ThresholdMaxImagesCount, propertiesDev.MaxFolderSizeInGiB)
-		log.Infof("Prod folder: %s, ThresholdMaxImagesCount: %d, MaxFolderSizeInGiB: %.2f", propertiesProd.FolderPath, propertiesProd.ThresholdMaxImagesCount, propertiesProd.MaxFolderSizeInGiB)
-
 		// Get disk usage for the root directory
-		fs := syscall.Statfs_t{}
-		err := syscall.Statfs("/", &fs)
+		freeSpace, usedSpace, totalSpace, err := calculateDiskSpaceUsage()
 		if err != nil {
-			log.Fatal(err)
+			log.Errorf("Error calculating disk space usage: %s", err)
+		} else {
+			log.Infof("Disk free: %.2f%% (%.2f GiB), Disk used: %.2f%% (%.2f GiB), Disk Space total: %.2f GiB", (freeSpace/totalSpace)*100, bytesToGiB(freeSpace), (usedSpace/totalSpace)*100, bytesToGiB(usedSpace), bytesToGiB(totalSpace))
 		}
 
-		freeSpace, usedSpace, totalSpace := calculateDiskSpaceUsage()
-
-		log.Infof("Disk free: %.2f%% (%.2f GiB), Disk used: %.2f%% (%.2f GiB), Disk Space total: %.2f GiB", (freeSpace/totalSpace)*100, bytesToGiB(freeSpace), (usedSpace/totalSpace)*100, bytesToGiB(usedSpace), bytesToGiB(totalSpace))
-
-		var folderProperties = []folderProperties{
-			propertiesDev,
-			propertiesProd,
-		}
-
-		log.Infof("Imagecount PreDeletion: ImagesDev (%d) , ImagesProd (%d)", len(getImages(propertiesDev.FolderPath)), len(getImages(propertiesProd.FolderPath)))
+		log.Infof("Image count before deletion: images dev (%d) , images prod (%d)", len(getImagesSortedByModifiedDate(propertiesDev.FolderPath)), len(getImagesSortedByModifiedDate(propertiesProd.FolderPath)))
 
 		// Delete oldest images until the folder size is below the threshold
 		for _, folderProperty := range folderProperties {
-			images := getImages(folderProperty.FolderPath)
+			images := getImagesSortedByModifiedDate(folderProperty.FolderPath)
 
 			folderSizeInGiB := getCurrentFolderSizeInGiB(folderProperty.FolderPath)
 
@@ -124,71 +125,70 @@ func main() {
 				if err != nil {
 					log.Errorf("Error deleting image %s: %s", images[i], err)
 				}
-				images = getImages(folderProperty.FolderPath)
+				images = getImagesSortedByModifiedDate(folderProperty.FolderPath)
 				folderSizeInGiB = getCurrentFolderSizeInGiB(folderProperty.FolderPath)
 			}
 		}
 
-		freeSpace, usedSpace, totalSpace = calculateDiskSpaceUsage()
+		log.Infof("Image count after deletion: images dev (%d) , images prod (%d)", len(getImagesSortedByModifiedDate(propertiesDev.FolderPath)), len(getImagesSortedByModifiedDate(propertiesProd.FolderPath)))
 
-		log.Infof("Imagecount PostDeletion: ImagesDev (%d) , ImagesProd (%d)", len(getImages(propertiesDev.FolderPath)), len(getImages(propertiesProd.FolderPath)))
-
-		log.Infof("Disk free: %.2f%% (%.2f GiB), Disk used: %.2f%% (%.2f GiB), Disk Space total: %.2f GiB", (freeSpace/totalSpace)*100, bytesToGiB(freeSpace), (usedSpace/totalSpace)*100, bytesToGiB(usedSpace), bytesToGiB(totalSpace))
+		freeSpace, usedSpace, totalSpace, err = calculateDiskSpaceUsage()
+		if err != nil {
+			log.Errorf("Error calculating disk space usage: %s", err)
+		} else {
+			log.Infof("Disk free: %.2f%% (%.2f GiB), Disk used: %.2f%% (%.2f GiB), Disk Space total: %.2f GiB", (freeSpace/totalSpace)*100, bytesToGiB(freeSpace), (usedSpace/totalSpace)*100, bytesToGiB(usedSpace), bytesToGiB(totalSpace))
+		}
 
 		time.Sleep(5 * time.Minute)
 	}
 }
 
 func folderNeedsCleanup(folderProperties folderProperties, currentFolderSize float64, allImages []image) bool {
-	if folderProperties.MaxFolderSizeInGiB < currentFolderSize || folderProperties.ThresholdMaxImagesCount < len(allImages) {
-		return true
-	}
-	return false
+	return folderProperties.MaxFolderSizeInGiB < currentFolderSize || folderProperties.ThresholdMaxImagesCount < len(allImages)
 }
 
-func calculateDiskSpaceUsage() (float64, float64, float64) {
+func calculateDiskSpaceUsage() (float64, float64, float64, error) {
 	fs := syscall.Statfs_t{}
 	err := syscall.Statfs("/", &fs)
 	if err != nil {
-		log.Fatal(err)
+		return 0, 0, 0, err
 	}
 
 	usedSpace := float64(fs.Blocks-fs.Bavail) * float64(fs.Bsize)
 	totalSpace := float64(fs.Blocks) * float64(fs.Bsize)
 	freeSpace := float64(fs.Bavail) * float64(fs.Bsize)
 
-	return freeSpace, usedSpace, totalSpace
+	return freeSpace, usedSpace, totalSpace, nil
 }
 
 // func to convert bytes to GiB
 func bytesToGiB(bytes float64) float64 {
-	return bytes / 1024 / 1024 / 1024
+	return bytes / math.Pow(1024, 3)
 }
 
-func getImages(folderName string) []image {
+// returns all images in Folder with newest modified image first and oldest last
+func getImagesSortedByModifiedDate(folderName string) []image {
 	var images []image
-	// var folderExists bool
+
 	files, err := os.ReadDir(folderName)
 	if err != nil {
-		if os.IsNotExist(err) {
-			log.Errorf("Folder %s does not exist", folderName)
-			// return nil, false
-		}
+		log.Errorf("Error reading folder %s: %s", folderName, err)
 	}
-	var matches []fs.DirEntry
+
+	var squashfsFiles []fs.DirEntry
 	for _, file := range files {
 		if strings.HasSuffix(file.Name(), ".squashfs") {
-			//if string starts with ".azDownload" ignore
+			//during the image sync process, the syncer creates a temporary file with the name ".azDownload...", therefore we should exclude it
 			if strings.HasPrefix(file.Name(), ".azDownload") {
 				continue
 			}
-			matches = append(matches, file)
+			squashfsFiles = append(squashfsFiles, file)
 		}
 	}
 
-	sort.Sort(ByModTime(matches))
+	sort.Sort(ByModTime(squashfsFiles))
 
-	for _, file := range matches {
+	for _, file := range squashfsFiles {
 		imageName := file.Name()
 		kernelVersionFilePath := fmt.Sprintf("%s-kernel.json", strings.TrimSuffix(imageName, ".squashfs"))
 		matchingKernelVersionFileExists := checkIfKernelVersionFileExists(folderName, kernelVersionFilePath)
@@ -202,9 +202,9 @@ func getImages(folderName string) []image {
 	return images
 }
 
-func checkIfKernelVersionFileExists(folderName string, kernelVersionFilePath string) bool {
-	relativeFilePathtoCheck := fmt.Sprintf("%s/%s", folderName, kernelVersionFilePath)
-	if _, err := os.Stat(relativeFilePathtoCheck); os.IsNotExist(err) {
+func checkIfKernelVersionFileExists(folderName string, kernelVersionFileName string) bool {
+	filePathtoCheck := fmt.Sprintf("%s/%s", folderName, kernelVersionFileName)
+	if _, err := os.Stat(filePathtoCheck); os.IsNotExist(err) {
 		return false
 	}
 	return true
@@ -226,24 +226,21 @@ func getCurrentFolderSizeInGiB(folderName string) float64 {
 		log.Errorf("Error calculating folder size: %s", err)
 	}
 
-	return float64(totalSize) / (1024 * 1024 * 1024)
+	return bytesToGiB(float64(totalSize))
 }
 
 func deleteImage(folderName string, image image) error {
-	relativeSquashFsFilePathtoDelete := fmt.Sprintf("%s/%s", folderName, image.ImageName)
-	log.Warnf("Deleting image %s", relativeSquashFsFilePathtoDelete)
-	err := os.Remove(relativeSquashFsFilePathtoDelete)
+	squashFsFilePathtoDelete := fmt.Sprintf("%s/%s", folderName, image.ImageName)
+	log.Infof("Deleting image %s", squashFsFilePathtoDelete)
+	err := os.Remove(squashFsFilePathtoDelete)
 	if err != nil {
 		return err
 	}
 
 	//delete kernel version file
-	relativeKernelVersionFilePathtoDelete := fmt.Sprintf("%s/%s", folderName, image.KernelVersionFile)
-	log.Warnf("Deleting kernel version file %s", relativeKernelVersionFilePathtoDelete)
-	err = os.Remove(relativeKernelVersionFilePathtoDelete)
-	if err != nil {
-		return err
-	}
+	kernelVersionFilePathtoDelete := fmt.Sprintf("%s/%s", folderName, image.KernelVersionFile)
+	log.Infof("Deleting kernel version file %s", kernelVersionFilePathtoDelete)
+	err = os.Remove(kernelVersionFilePathtoDelete)
 
-	return nil
+	return err
 }

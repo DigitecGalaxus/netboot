@@ -9,7 +9,8 @@ function tftpConnectWithEchoInfluxOutput() {
         tftpHostName="$1"
         tftpServerTestFile="$2"
 
-        if [[ $tftpServerTestFile == "menu.ipxe"  ]]; then
+        # This distinction is needed because all ipxe files are located in a subfolder "ipxe"
+        if [[ $tftpServerTestFile == *.ipxe  ]]; then
                 atftp -g -r "ipxe/$tftpServerTestFile" -l /tmp/"$tftpServerTestFile" "$tftpHostName" >/dev/null 2>&1
         else 
                 atftp -g -r "$tftpServerTestFile" -l /tmp/"$tftpServerTestFile" "$tftpHostName" >/dev/null 2>&1
@@ -39,7 +40,7 @@ function formatInfluxData() {
 
 ## Main Script ##
 
-filesToTest=("undionly.kpxe" "ipxe32.efi" "ipxe64.efi" "menu.ipxe")
+filesToTest=("undionly.kpxe" "ipxe32.efi" "ipxe64.efi" "menu.ipxe" "advancedmenu.ipxe")
 
 for fileToTest in "${filesToTest[@]}"; do
         tftpConnectWithEchoInfluxOutput "$netbootServer" "$fileToTest"
