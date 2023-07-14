@@ -94,6 +94,10 @@ type kernelVersion struct {
 func getMatchingKernelVersion(folderName string, imageName string) (string, error) {
 	var version kernelVersion
 
+	if strings.HasPrefix(imageName, ".azDownload") {
+		return "", nil
+	}
+
 	bytes, err := os.ReadFile(fmt.Sprintf("%s/%s-kernel.json", folderName, imageName))
 	if err != nil {
 		return "", err
