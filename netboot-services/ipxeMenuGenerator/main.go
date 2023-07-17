@@ -66,7 +66,7 @@ func (b ByModTime) Less(i, j int) bool {
 	return infoI.ModTime().After(infoJ.ModTime())
 }
 
-func getMostRecentSquashfsImage(folderName string) string {
+func getMostRecentSquashfsImage(folderName string) (string, error) {
 	files, err := os.ReadDir(folderName)
 	if err != nil {
 		log.Fatal(err)
@@ -75,6 +75,9 @@ func getMostRecentSquashfsImage(folderName string) string {
 	var matches []fs.DirEntry
 	for _, file := range files {
 		if strings.HasSuffix(file.Name(), ".squashfs") {
+			if strings.HasPrefix(file.Name(), ".azDownload") {
+				continue
+			}
 			matches = append(matches, file)
 		}
 	}
@@ -82,9 +85,9 @@ func getMostRecentSquashfsImage(folderName string) string {
 	sort.Sort(ByModTime(matches))
 
 	if len(matches) > 0 {
-		return strings.TrimSuffix(matches[0].Name(), ".squashfs")
+		return strings.TrimSuffix(matches[0].Name(), ".squashfs"), nil
 	}
-	panic("No squashfs image found")
+	return "", nil
 }
 
 type kernelVersion struct {
@@ -110,34 +113,40 @@ func getMatchingKernelVersion(folderName string, imageName string) (string, erro
 }
 
 func renderMenuIpxe(filename string, folderName string, netbootServerIP string) {
-	mostRecentSquashfsImageName := getMostRecentSquashfsImage(folderName)
-	kernelVersionString, err := getMatchingKernelVersion(folderName, mostRecentSquashfsImageName)
+	mostRecentSquashfsImageName, err := getMostRecentSquashfsImage(folderName)
 	if err != nil {
-		log.Fatalf("could not find matching kernel version to the provided squashFSImage %s. Error: %s", mostRecentSquashfsImageName, err)
+		log.Error(err)
 	}
 
-	j2, err := jinja2.NewJinja2("menu.ipxe", 1,
-		jinja2.WithGlobal("netbootServerIP", netbootServerIP),
-		jinja2.WithGlobal("imageName", mostRecentSquashfsImageName),
-		jinja2.WithGlobal("kernelFolderName", kernelVersionString),
-	)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer j2.Close()
+	if mostRecentSquashfsImageName != "" {
+		kernelVersionString, err := getMatchingKernelVersion(folderName, mostRecentSquashfsImageName)
+		if err != nil {
+			log.Fatalf("could not find matching kernel version to the provided squashFSImage %s. Error: %s", mostRecentSquashfsImageName, err)
+		}
 
-	renderedString, err := j2.RenderFile(filename)
-	if err != nil {
-		log.Fatal(err)
-	}
+		j2, err := jinja2.NewJinja2("menu.ipxe", 1,
+			jinja2.WithGlobal("netbootServerIP", netbootServerIP),
+			jinja2.WithGlobal("imageName", mostRecentSquashfsImageName),
+			jinja2.WithGlobal("kernelFolderName", kernelVersionString),
+		)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer j2.Close()
 
-	filePath := fmt.Sprintf("/menus/%s", strings.ReplaceAll(filename, ".j2", ""))
-	err = os.WriteFile(filePath, []byte(renderedString), 0644)
-	if err != nil {
-		log.Fatal(err)
-	}
+		renderedString, err := j2.RenderFile(filename)
+		if err != nil {
+			log.Fatal(err)
+		}
 
-	log.Debugf("filename: %s\nresult: %s", filename, renderedString)
+		filePath := fmt.Sprintf("/menus/%s", strings.ReplaceAll(filename, ".j2", ""))
+		err = os.WriteFile(filePath, []byte(renderedString), 0644)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		log.Debugf("filename: %s\nresult: %s", filename, renderedString)
+	}
 }
 
 func getDevImages() []image {

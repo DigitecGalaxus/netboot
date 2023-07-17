@@ -19,11 +19,11 @@ fi
 
 while true
 do
-  if [ "$SYNC_DEV" ]; then
+  if [ "$SYNC_DEV" = "true" ] || [ "$SYNC_DEV" = "True" ]; then
     azcopy cp --cap-mbps "$SYNC_BANDWITDH_LIMIT_MBITS" "$SYNC_BLOB_URL/dev/*$SYNC_SAS_TOKEN" "/home/syncer/dev/" --overwrite=ifSourceNewer --recursive
   fi
 
-  if [ "$SYNC_PROD" ]; then
+  if [ "$SYNC_PROD" = "true" ] || [ "$SYNC_PROD" = "True" ]; then
   azcopy cp --cap-mbps "$SYNC_BANDWITDH_LIMIT_MBITS" "$SYNC_BLOB_URL/prod/*$SYNC_SAS_TOKEN" "/home/syncer/prod/" --overwrite=ifSourceNewer --recursive
   fi
 
