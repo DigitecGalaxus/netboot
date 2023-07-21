@@ -5,18 +5,18 @@
 # Language-Detection: Set different languages based on the default gateway IP address
 :language
 # Lausanne
-iseq ${netX/gateway} 172.20.72.1 && set language fr_CH && goto register_basic_auth ||
+iseq ${netX/gateway} 172.20.72.1 && set language fr_CH && goto check_boot_from_azure ||
 # Genf
-iseq ${netX/gateway} 172.20.56.1 && set language fr_CH && goto register_basic_auth ||
+iseq ${netX/gateway} 172.20.56.1 && set language fr_CH && goto check_boot_from_azure ||
 # Krefeld
-iseq ${netX/gateway} 172.22.32.1 && set language de_DE && goto register_basic_auth ||
+iseq ${netX/gateway} 172.22.32.1 && set language de_DE && goto check_boot_from_azure ||
 # Odilia
-iseq ${netX/gateway} 172.22.224.1 && set language de_DE && goto register_basic_auth ||
+iseq ${netX/gateway} 172.22.224.1 && set language de_DE && goto check_boot_from_azure ||
 # Fallback (when no condition above triggers to set next-server)
 set language de_CH
 
 :check_boot_from_azure
-iseq ${next-server} {{ azureNetbootServerIP }} && goto :register_basic_auth ||
+iseq ${next-server} {{ azureNetbootServerIP }} && goto register_basic_auth ||
 # if nothing applies, boot from local network
 set http-protocol http && set url ${next-server} && goto initial_menu ||
 
@@ -29,7 +29,7 @@ imgfetch https://${httpAuthUser}:${httpAuthPassword}@{{ onpremExposedNetbootServ
 goto check_if_storage_account_is_reachable ||
 
 :check_if_storage_account_is_reachable
-imgfetch {{ azureBlobstorageURL }}/kernels/latest-kernel-version.json{{ azureBlobstorageSASToken }} &&  goto set_azure_storageaccount ||
+imgfetch https://{{ azureBlobstorageURL }}/kernels/latest-kernel-version.json{{ azureBlobstorageSASToken }} &&  goto set_azure_storageaccount ||
 set http-protocol http && goto initial_menu ||
 
 :set_onprem_netbootserver
