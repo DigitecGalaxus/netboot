@@ -29,7 +29,7 @@ imgfetch https://${httpAuthUser}:${httpAuthPassword}@{{ onpremExposedNetbootServ
 goto check_if_storage_account_is_reachable ||
 
 :check_if_storage_account_is_reachable
-imgfetch https://thinclientsimgstore.blob.core.windows.net/kernels/latest-kernel-version.json{{ azureBlobstorageSASToken }} &&  goto set_azure_storageaccount ||
+imgfetch {{ azureBlobstorageURL }}/kernels/latest-kernel-version.json{{ azureBlobstorageSASToken }} &&  goto set_azure_storageaccount ||
 set http-protocol http && goto initial_menu ||
 
 :set_onprem_netbootserver
@@ -37,7 +37,7 @@ set http-protocol https && set url {{ onpremExposedNetbootServer }}:8443 && set 
 goto initial_menu ||
 
 :set_azure_storageaccount
-set http-protocol https && set url thinclientsimgstore.blob.core.windows.net && set sas_token {{ azureBlobstorageSASToken }} && goto initial_menu ||
+set http-protocol https && set url {{ azureBlobstorageURL }} && set sas_token {{ azureBlobstorageSASToken }} && goto initial_menu ||
 
 :macboot
 chain --autofree tftp://{{ netbootServerIP }}/ipxe/MAC-${mac:hexraw}.ipxe || echo Custom boot by MAC not found, going to menu...

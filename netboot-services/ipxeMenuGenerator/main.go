@@ -48,6 +48,11 @@ func main() {
 			log.Error("AZURE_SYNC_SAS_TOKEN not set")
 		}
 
+		azureBlobstorageURL := os.Getenv("AZURE_SYNC_BLOB_URL")
+		if azureBlobstorageURL == "" {
+			log.Error("AZURE_SYNC_BLOB_URL not set")
+		}
+
 		httpAuthUser := os.Getenv("HTTP_AUTH_USER")
 		if httpAuthUser == "" {
 			log.Fatal("HTTP_AUTH_USER not set")
@@ -58,9 +63,9 @@ func main() {
 			log.Fatal("HTTP_AUTH_PASSWORD not set")
 		}
 
-		renderMenuIpxe("menu.ipxe.j2", ProdFolder, netbootServerIP, azureNetbootServerIP, onpremExposedNetbootServer, azureBlobstorageSASToken, httpAuthUser, httpAuthPassword)
+		renderMenuIpxe("menu.ipxe.j2", ProdFolder, netbootServerIP, azureNetbootServerIP, onpremExposedNetbootServer, azureBlobstorageURL, azureBlobstorageSASToken, httpAuthUser, httpAuthPassword)
 
-		err := renderAdvancedMenu("advancedmenu.ipxe.j2", netbootServerIP, azureNetbootServerIP, onpremExposedNetbootServer, azureBlobstorageSASToken, httpAuthUser, httpAuthPassword)
+		err := renderAdvancedMenu("advancedmenu.ipxe.j2", netbootServerIP, azureNetbootServerIP, onpremExposedNetbootServer, azureBlobstorageURL, azureBlobstorageSASToken, httpAuthUser, httpAuthPassword)
 		if err != nil {
 			log.Error(err)
 		}
@@ -136,7 +141,7 @@ func getMatchingKernelVersion(folderName string, imageName string) (string, erro
 	return version.KernelVersion, err
 }
 
-func renderMenuIpxe(filename string, folderName string, netbootServerIP string, azureNetbootServerIP string, onpremExposedNetbootServer string, azureBlobstorageSASToken string, httpAuthUser string, httpAuthPassword string) {
+func renderMenuIpxe(filename string, folderName string, netbootServerIP string, azureNetbootServerIP string, onpremExposedNetbootServer string, azureBlobstorageURL string, azureBlobstorageSASToken string, httpAuthUser string, httpAuthPassword string) {
 	mostRecentSquashfsImageName, err := getMostRecentSquashfsImage(folderName)
 	if err != nil {
 		log.Error(err)
@@ -153,6 +158,7 @@ func renderMenuIpxe(filename string, folderName string, netbootServerIP string, 
 			jinja2.WithGlobal("azureNetbootServerIP", azureNetbootServerIP),
 			jinja2.WithGlobal("onpremExposedNetbootServer", onpremExposedNetbootServer),
 			jinja2.WithGlobal("azureBlobstorageSASToken", azureBlobstorageSASToken),
+			jinja2.WithGlobal("azureBlobstorageURL", azureBlobstorageURL),
 			jinja2.WithGlobal("httpAuthUser", httpAuthUser),
 			jinja2.WithGlobal("httpAuthPassword", httpAuthPassword),
 			jinja2.WithGlobal("imageName", mostRecentSquashfsImageName),
@@ -220,7 +226,7 @@ func getImages(folderName string) []image {
 	return images
 }
 
-func renderAdvancedMenu(filename string, netbootServerIP string, azureNetbootServerIP string, onpremExposedNetbootServer string, azureBlobstorageSASToken string, httpAuthUser string, httpAuthPassword string) error {
+func renderAdvancedMenu(filename string, netbootServerIP string, azureNetbootServerIP string, onpremExposedNetbootServer string, azureBlobstorageURL string, azureBlobstorageSASToken string, httpAuthUser string, httpAuthPassword string) error {
 	prodImages := getProdImages()
 	devImages := getDevImages()
 	j2, err := jinja2.NewJinja2("advancedmenu.ipxe", 1,
@@ -228,6 +234,7 @@ func renderAdvancedMenu(filename string, netbootServerIP string, azureNetbootSer
 		jinja2.WithGlobal("azureNetbootServerIP", azureNetbootServerIP),
 		jinja2.WithGlobal("onpremExposedNetbootServer", onpremExposedNetbootServer),
 		jinja2.WithGlobal("azureBlobstorageSASToken", azureBlobstorageSASToken),
+		jinja2.WithGlobal("azureBlobstorageURL", azureBlobstorageURL),
 		jinja2.WithGlobal("httpAuthUser", httpAuthUser),
 		jinja2.WithGlobal("httpAuthPassword", httpAuthPassword),
 		jinja2.WithGlobal("prod", prodImages),
