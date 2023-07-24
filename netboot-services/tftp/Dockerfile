@@ -6,6 +6,8 @@ RUN git clone git://git.ipxe.org/ipxe.git
 RUN sed -i 's/#undef\tDOWNLOAD_PROTO_HTTPS/#define\ DOWNLOAD_PROTO_HTTPS/' ipxe/src/config/general.h
 RUN sed -i 's/\/\/#define PING_CMD/#define PING_CMD/' ipxe/src/config/general.h
 RUN sed -i 's/\/\/#define NSLOOKUP_CMD/#define NSLOOKUP_CMD/' ipxe/src/config/general.h
+# Workaround for fetching data from servers with a Let's Encrypt certificate.
+# https://github.com/ipxe/ipxe/issues/606 - Certificate validation fails when the last certificate of the chain is signed by an expired CA (DST Root CA X3)
 RUN export CERT=ca.pem,isrgrootx1.pem,lets-encrypt-r3.pem && export TRUST=ca.pem,isrgrootx1.pem,lets-encrypt-r3.pem
 RUN curl -s http://ca.ipxe.org/ca.crt > ipxe/src/ca.pem 
 RUN curl -s https://letsencrypt.org/certs/isrgrootx1.pem > ipxe/src/isrgrootx1.pem

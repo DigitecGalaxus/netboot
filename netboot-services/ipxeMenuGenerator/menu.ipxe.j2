@@ -22,7 +22,7 @@ set http-protocol http && set url ${next-server} && goto initial_menu ||
 
 :register_basic_auth
 set httpAuthUser {{ httpAuthUser }} && set httpAuthPassword {{ httpAuthPassword }} && goto check_if_onprem_netbootserver_is_reachable || 
-goto check_if_onprem_netbootserver_is_reachable ||
+goto check_if_storage_account_is_reachable ||
 
 :check_if_onprem_netbootserver_is_reachable
 imgfetch https://${httpAuthUser}:${httpAuthPassword}@{{ onpremExposedNetbootServer }}:8443/kernels/latest-kernel-version.json && goto set_onprem_netbootserver ||
@@ -51,7 +51,6 @@ item --gap Erweitert:
 item advanced ${sp} Erweiterte Bootoptionen
 item reboot ${sp} Neustart
 item --gap Aktuell gesetzter Bootserver: ${next-server}
-item --gap Aktuell gesetzter Fileserver: {{ onpremExposedNetbootServer }}
 item --gap Aktuell gesetzte Sprache: ${language}
 choose --timeout 10000 initial_choice || goto start
 goto ${initial_choice}
