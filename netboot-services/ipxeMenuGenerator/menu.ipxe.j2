@@ -21,18 +21,18 @@ iseq ${next-server} {{ azureNetbootServerIP }} && goto register_basic_auth ||
 set http-protocol http && set url ${next-server} && goto initial_menu ||
 
 :register_basic_auth
-set httpAuthUser {{ httpAuthUser }} && set httpAuthPassword {{ httpAuthPassword }} && goto check_if_onprem_netbootserver_is_reachable || 
+set httpAuthUser {{ httpAuthUser }} && set httpAuthPassword {{ httpAuthPassword }} && goto check_if_onprem_exposed_netboot_is_reachable || 
 goto check_if_storage_account_is_reachable ||
 
-:check_if_onprem_netbootserver_is_reachable
-imgfetch https://${httpAuthUser}:${httpAuthPassword}@{{ onpremExposedNetbootServer }}:8443/kernels/latest-kernel-version.json && goto set_onprem_netbootserver ||
+:check_if_onprem_exposed_netboot_is_reachable
+imgfetch https://${httpAuthUser}:${httpAuthPassword}@{{ onpremExposedNetbootServer }}:8443/kernels/latest-kernel-version.json && goto set_onprem_exposed_netboot ||
 goto check_if_storage_account_is_reachable ||
 
 :check_if_storage_account_is_reachable
 imgfetch https://{{ azureBlobstorageURL }}/kernels/latest-kernel-version.json{{ azureBlobstorageSASToken }} &&  goto set_azure_storageaccount ||
 set http-protocol http && goto initial_menu ||
 
-:set_onprem_netbootserver
+:set_onprem_exposed_netboot
 set http-protocol https && set url {{ onpremExposedNetbootServer }}:8443 && set basicAuth {{ httpAuthUser }}:{{ httpAuthPassword }}@ && goto initial_menu ||
 goto initial_menu ||
 

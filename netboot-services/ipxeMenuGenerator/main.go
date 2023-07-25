@@ -45,12 +45,12 @@ func main() {
 
 		azureBlobstorageSASToken := os.Getenv("AZURE_SYNC_SAS_TOKEN")
 		if azureBlobstorageSASToken == "" {
-			log.Error("AZURE_SYNC_SAS_TOKEN not set")
+			log.Fatal("AZURE_SYNC_SAS_TOKEN not set")
 		}
 
 		azureBlobstorageURL := os.Getenv("AZURE_SYNC_BLOB_URL")
 		if azureBlobstorageURL == "" {
-			log.Error("AZURE_SYNC_BLOB_URL not set")
+			log.Fatal("AZURE_SYNC_BLOB_URL not set")
 		}
 
 		httpAuthUser := os.Getenv("HTTP_AUTH_USER")
