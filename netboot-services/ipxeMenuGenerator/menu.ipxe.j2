@@ -5,15 +5,39 @@
 # Language-Detection: Set different languages based on the default gateway IP address
 :language
 # Lausanne
-iseq ${netX/gateway} 172.20.72.1 && set language fr_CH && goto initial_menu ||
+iseq ${netX/gateway} 172.20.72.1 && set language fr_CH && goto check_boot_from_azure ||
 # Genf
-iseq ${netX/gateway} 172.20.56.1 && set language fr_CH && goto initial_menu ||
+iseq ${netX/gateway} 172.20.56.1 && set language fr_CH && goto check_boot_from_azure ||
 # Krefeld
-iseq ${netX/gateway} 172.22.32.1 && set language de_DE && goto initial_menu ||
+iseq ${netX/gateway} 172.22.32.1 && set language de_DE && goto check_boot_from_azure ||
 # Odilia
-iseq ${netX/gateway} 172.22.224.1 && set language de_DE && goto initial_menu ||
+iseq ${netX/gateway} 172.22.224.1 && set language de_DE && goto check_boot_from_azure ||
 # Fallback (when no condition above triggers to set next-server)
 set language de_CH
+
+:check_boot_from_azure
+iseq ${next-server} {{ azureNetbootServerIP }} && goto register_basic_auth ||
+# if nothing applies, boot from local network
+set http-protocol http && set url ${next-server} && goto initial_menu ||
+
+:register_basic_auth
+set httpAuthUser {{ httpAuthUser }} && set httpAuthPassword {{ httpAuthPassword }} && goto check_if_onprem_exposed_netboot_is_reachable || 
+goto check_if_storage_account_is_reachable ||
+
+:check_if_onprem_exposed_netboot_is_reachable
+imgfetch https://${httpAuthUser}:${httpAuthPassword}@{{ onpremExposedNetbootServer }}:8443/kernels/latest-kernel-version.json && goto set_onprem_exposed_netboot ||
+goto check_if_storage_account_is_reachable ||
+
+:check_if_storage_account_is_reachable
+imgfetch https://{{ azureBlobstorageURL }}/kernels/latest-kernel-version.json{{ azureBlobstorageSASToken }} &&  goto set_azure_storageaccount ||
+set http-protocol http && goto initial_menu ||
+
+:set_onprem_exposed_netboot
+set http-protocol https && set url {{ onpremExposedNetbootServer }}:8443 && set basicAuth {{ httpAuthUser }}:{{ httpAuthPassword }}@ && goto initial_menu ||
+goto initial_menu ||
+
+:set_azure_storageaccount
+set http-protocol https && set url {{ azureBlobstorageURL }} && set sas_token {{ azureBlobstorageSASToken }} && goto initial_menu ||
 
 :macboot
 chain --autofree tftp://{{ netbootServerIP }}/ipxe/MAC-${mac:hexraw}.ipxe || echo Custom boot by MAC not found, going to menu...
@@ -33,13 +57,13 @@ goto ${initial_choice}
 
 # Bootconfigurtion for our netboot-OS
 :dg-thinclient-prod
-set squash_url http://{{ netbootServerIP }}/prod/{{ imageName }}.squashfs
-set kernel_url http://{{ netbootServerIP }}/kernels/{{ kernelFolderName }}/
+set squash_url ${http-protocol}://${basicAuth}${url}/prod/{{ imageName }}.squashfs${sas_token}
+set kernel_url ${http-protocol}://${basicAuth}${url}/kernels/{{ kernelFolderName }}/
 
 :startboot
 imgfree
-kernel ${kernel_url}vmlinuz ip=dhcp boot=casper netboot=url url=${squash_url} initrd=initrd locale=${language} ${cmdline}
-initrd ${kernel_url}initrd
+kernel ${kernel_url}vmlinuz${sas_token} ip=dhcp boot=casper netboot=url url=${squash_url} initrd=initrd locale=${language} ${cmdline}
+initrd ${kernel_url}initrd${sas_token}
 boot
 
 # Chaining the advanced menu.
