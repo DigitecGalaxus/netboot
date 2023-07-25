@@ -4,9 +4,7 @@ We monitor the tftp service from the host it is running on to be able to use doc
 
 ## Usage
 
-To get the telegraf config to work, replace the respective variables in the `#{}#` placeholders in the [../../docker-compose.yaml](../../docker-compose.yaml) file. It is setup to log to Datadog only when the respective parameters are provided. If not, it will simply log to stdout with the `telegraf --test` option.
-
-The monitoring container has a volume mount on the file [../cachingServerFetcher/caching_server_list.json](../cachingServerFetcher/caching_server_list.json), so if caching servers should be monitored, this file needs to be filled out accordingly.
+To get the telegraf config to work, set the correct environment variables in the `.env` file. It is setup to log to Datadog only when the respective parameters are provided. If not, it will simply log to stdout with the `telegraf --test` option.
 
 ## TFTP Monitoring
 

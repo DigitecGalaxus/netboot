@@ -3,4 +3,3 @@
 *.ppk
 *.efi
 *.kpxe
-netboot-services/cachingServerFetcher/caching-server.ipxe

@@ -1,9 +1,11 @@
-FROM python:3.10.0rc2-alpine3.13
-RUN pip3 install Jinja2 j2cli
-RUN apk add --no-cache bash curl jq findutils
+FROM golang:1.20.5-alpine AS build
 WORKDIR /work
+COPY . /work
+RUN go test -v ./... -count=1
+RUN GCO_ENABLED=0 && go build -o menubuilder
 
+FROM alpine:3.18
+COPY --from=build /work/menubuilder /usr/local/bin/menubuilder
 COPY *.j2 /work/
-COPY buildMainIpxeMenus.sh /work/buildMainIpxeMenus.sh
-COPY buildIpxeMacMenus.sh /work/buildIpxeMacMenus.sh
-COPY caching-server.ipxe.tmpl /work/caching-server.ipxe.tmpl
+WORKDIR /work
+ENTRYPOINT /usr/local/bin/menubuilder

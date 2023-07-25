@@ -43,8 +43,6 @@ function formatInfluxData() {
 
 netbootServer="$1"
 # This references an internal endpoint and might not be reachable.
-cachingServers=$(jq -r '.cachingServers[].cachingServerIP' </etc/telegraf/caching_server_list.json)
-# This references an internal endpoint and might not be reachable.
 latestKernelversion=$(curl --connect-timeout 2 -s "$netbootServer/kernels/latest-kernel-version.json" | jq -r .version)
 
 if [[ "$latestKernelversion" == "" ]]; then
@@ -58,8 +56,3 @@ mostRecentKernelVersionJson=$(getFilenameWithFilter "$netbootServer" "prod" "jso
 ### Check HTTP functionality on Netboot Server with a small json file to avoid downloading the full squashfs. Also Test the Kernel Files and do execute the same on the cachingServers
 requestFilesAndEchoInfluxOutput "$netbootServer" "kernels/$latestKernelversion" "vmlinuz"
 requestFilesAndEchoInfluxOutput "$netbootServer" "prod" "$mostRecentKernelVersionJson"
-
-while IFS= read -r cachingServer; do
-    # Check if the prod folder on the caching server contains the same (latest) json file as the netboot
-    requestFilesAndEchoInfluxOutput "$cachingServer" "prod" "$mostRecentKernelVersionJson"
-done <<<"$cachingServers"
