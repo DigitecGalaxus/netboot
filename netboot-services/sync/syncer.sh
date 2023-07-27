@@ -30,6 +30,9 @@ do
   #Sync kernels
   azcopy cp --cap-mbps "$SYNC_BANDWITDH_LIMIT_MBITS" "$SYNC_BLOB_URL/kernels/*$SYNC_SAS_TOKEN" "/home/syncer/kernels/" --overwrite=ifSourceNewer --recursive
 
+  azcopy jobs clean --with-status=completed
+  azcopy jobs clean --with-status=completedwithskipped
+
   #random sleep within 5 minutes
   sleep $(( ( RANDOM % 300 )  + 1 ))
   echo "Syncing run processed on $(date)"
