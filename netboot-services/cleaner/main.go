@@ -128,6 +128,14 @@ func main() {
 				images = getImagesSortedByModifiedDate(folderProperty.FolderPath)
 				folderSizeInGiB = getCurrentFolderSizeInGiB(folderProperty.FolderPath)
 			}
+
+			stuckAzDowloadFiles := getStuckSyncFilesOlderThanDayCount(folderProperty.FolderPath, 2)
+			for _, oldAzDownloadFile := range stuckAzDowloadFiles {
+				err := os.Remove(oldAzDownloadFile.Name())
+				if err != nil {
+					log.Errorf("Error deleting old .azDownload file %s: %s", oldAzDownloadFile.Name(), err)
+				}
+			}
 		}
 
 		log.Infof("Image count after deletion: images dev (%d) , images prod (%d)", len(getImagesSortedByModifiedDate(propertiesDev.FolderPath)), len(getImagesSortedByModifiedDate(propertiesProd.FolderPath)))
@@ -164,6 +172,37 @@ func calculateDiskSpaceUsage() (float64, float64, float64, error) {
 // func to convert bytes to GiB
 func bytesToGiB(bytes float64) float64 {
 	return bytes / math.Pow(1024, 3)
+}
+
+// returns all Files that have a prefix '.azDownloads' and are older than '
+func getStuckSyncFilesOlderThanDayCount(folderName string, dayCount int) []fs.DirEntry {
+	files, err := os.ReadDir(folderName)
+	if err != nil {
+		log.Errorf("Error reading folder %s: %s", folderName, err)
+	}
+
+	azDownloadFilesOlderThanDays := getSyncFilesOlderThanDays(files, dayCount)
+	return azDownloadFilesOlderThanDays
+}
+
+// .azDownload files are temporary files with the
+func getSyncFilesOlderThanDays(folderFiles []fs.DirEntry, dayCount int) []fs.DirEntry {
+	var azDownloadFilesOlderThanDays []fs.DirEntry
+	dateThreshold := time.Now().AddDate(0, 0, -dayCount)
+	for _, file := range folderFiles {
+		if strings.HasPrefix(file.Name(), ".azDownload") {
+			fileInformation, err := file.Info()
+			if err != nil {
+				log.Errorf("Error getting file info for %s: %s", file.Name(), err)
+				continue
+			}
+			if fileInformation.ModTime().Before(dateThreshold) {
+				azDownloadFilesOlderThanDays = append(azDownloadFilesOlderThanDays, file)
+				continue
+			}
+		}
+	}
+	return azDownloadFilesOlderThanDays
 }
 
 // returns all images in Folder with newest modified image first and oldest last
