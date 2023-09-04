@@ -144,7 +144,14 @@ func main() {
 }
 
 func folderNeedsCleanup(folderProperties folderProperties, currentFolderSize float64, allImages []image) bool {
-	return folderProperties.MaxFolderSizeInGiB < currentFolderSize || folderProperties.ThresholdMaxImagesCount < len(allImages)
+	if folderProperties.MaxFolderSizeInGiB < currentFolderSize || folderProperties.ThresholdMaxImagesCount < len(allImages) {
+		if len(allImages) <= 1 {
+			log.Errorf("We only have one bootable image left on this Netboot Server, yet the folderSize is over the defined threshold. Maybe there are some old temp '.azDownload' that weren't cleaned up by azcopy because of some issue. Folderpath: %s", folderProperties.FolderPath)
+			return false
+		}
+		return true
+	}
+	return false
 }
 
 func calculateDiskSpaceUsage() (float64, float64, float64, error) {
