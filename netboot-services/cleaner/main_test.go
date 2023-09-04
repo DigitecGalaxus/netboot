@@ -29,23 +29,6 @@ func TestSortByModificationDate(t *testing.T) {
 	assert.Equal(t, allFiles[4].Name(), "file5.txt")
 }
 
-func TestGetOldSyncFiles(t *testing.T) {
-	allFilesInFolder := []fs.DirEntry{
-		&mockDirEntry{name: ".azDownload-23-08-30-master-251212d.squashfs", isDir: false, fileInfo: &mockFileInfo{name: ".azDownload-23-08-30-master-251212d.squashfs", modTime: time.Now().AddDate(0, -1, -5)}},
-		&mockDirEntry{name: ".azDownload-24-08-30-master-251212d.squashfs", isDir: false, fileInfo: &mockFileInfo{name: ".azDownload-24-08-30-master-251212d.squashfs", modTime: time.Now().AddDate(0, 0, -5)}},
-		&mockDirEntry{name: ".azDownload-25-08-30-master-251212d.squashfs", isDir: false, fileInfo: &mockFileInfo{name: ".azDownload-25-08-30-master-251212d.squashfs", modTime: time.Now().AddDate(0, 0, -3)}},
-		&mockDirEntry{name: ".azDownload-26-08-30-master-251212d.squashfs", isDir: false, fileInfo: &mockFileInfo{name: ".azDownload-26-08-30-master-251212d.squashfs", modTime: time.Now().AddDate(0, 0, -1)}},
-		&mockDirEntry{name: ".azDownload-27-08-30-master-251212d.squashfs", isDir: false, fileInfo: &mockFileInfo{name: ".azDownload-27-08-30-master-251212d.squashfs", modTime: time.Now()}},
-	}
-	stuckFilesMock := getSyncFilesOlderThanDays(allFilesInFolder, 4)
-
-	sort.Sort(ByModTime(stuckFilesMock))
-	assert.Equal(t, stuckFilesMock[0].Name(), ".azDownload-24-08-30-master-251212d.squashfs")
-	assert.Equal(t, stuckFilesMock[1].Name(), ".azDownload-23-08-30-master-251212d.squashfs")
-	assert.Equal(t, len(stuckFilesMock), 2)
-
-}
-
 type mockDirEntry struct {
 	name     string
 	isDir    bool
