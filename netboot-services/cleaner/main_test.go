@@ -29,6 +29,24 @@ func TestSortByModificationDate(t *testing.T) {
 	assert.Equal(t, allFiles[4].Name(), "file5.txt")
 }
 
+func TestGetJsonFilesOlderThanDays(t *testing.T) {
+	allKernelJsonFiles := []fs.DirEntry{
+		&mockDirEntry{name: "foo-kernel.json", isDir: false, fileInfo: &mockFileInfo{name: "foo-kernel.json", modTime: time.Now().AddDate(0, 0, -1)}},
+		&mockDirEntry{name: "bar-kernel.json", isDir: false, fileInfo: &mockFileInfo{name: "bar-kernel.json", modTime: time.Now()}},
+		&mockDirEntry{name: "hansi-kernel.json", isDir: false, fileInfo: &mockFileInfo{name: "hansi-kernel.json", modTime: time.Now().AddDate(0, 0, -5)}},
+		&mockDirEntry{name: "dude-kernel.json", isDir: false, fileInfo: &mockFileInfo{name: "dude-kernel.json", modTime: time.Now().AddDate(0, 0, -3)}},
+		&mockDirEntry{name: "yey-kernel.json", isDir: false, fileInfo: &mockFileInfo{name: "yey-kernel.json", modTime: time.Now().AddDate(0, 0, -10)}},
+	}
+
+	oldKernelJsonFiles := getDanglingJsonFilesOlderThanDays(allKernelJsonFiles, 4)
+	sort.Sort(ByModTime(oldKernelJsonFiles))
+
+	assert.Equal(t, "hansi-kernel.json", oldKernelJsonFiles[0].Name())
+	assert.Equal(t, "yey-kernel.json", oldKernelJsonFiles[1].Name())
+	assert.Equal(t, 2, len(oldKernelJsonFiles))
+
+}
+
 type mockDirEntry struct {
 	name     string
 	isDir    bool

@@ -128,6 +128,15 @@ func main() {
 				images = getImagesSortedByModifiedDate(folderProperty.FolderPath)
 				folderSizeInGiB = getCurrentFolderSizeInGiB(folderProperty.FolderPath)
 			}
+
+			danglingKernelJsons := getDanglingKernelFilesOlderThanDate(folderProperty.FolderPath, 1)
+			for _, danlingKernelJson := range danglingKernelJsons {
+				err := os.Remove(danlingKernelJson.Name())
+				if err != nil {
+					log.Errorf("Error deleting an old kernel json file %s: %s", danlingKernelJson.Name(), err)
+				}
+			}
+
 		}
 
 		log.Infof("Image count after deletion: images dev (%d) , images prod (%d)", len(getImagesSortedByModifiedDate(propertiesDev.FolderPath)), len(getImagesSortedByModifiedDate(propertiesProd.FolderPath)))
@@ -171,6 +180,34 @@ func calculateDiskSpaceUsage() (float64, float64, float64, error) {
 // func to convert bytes to GiB
 func bytesToGiB(bytes float64) float64 {
 	return bytes / math.Pow(1024, 3)
+}
+
+func getDanglingKernelFilesOlderThanDate(folderName string, dayCount int) []fs.DirEntry {
+	files, err := os.ReadDir(folderName)
+	if err != nil {
+		log.Errorf("Error reading folder %s: %s", folderName, err)
+	}
+
+	return getDanglingJsonFilesOlderThanDays(files, dayCount)
+}
+
+func getDanglingJsonFilesOlderThanDays(folderFiles []fs.DirEntry, dayCount int) []fs.DirEntry {
+	var jsonFilesOlderThanDays []fs.DirEntry
+	dateThreshold := time.Now().AddDate(0, 0, -dayCount)
+	for _, file := range folderFiles {
+		if strings.HasSuffix(file.Name(), "-kernel.json") {
+			fileInformation, err := file.Info()
+			if err != nil {
+				log.Errorf("Error getting file info for %s: %s", file.Name(), err)
+				continue
+			}
+			if fileInformation.ModTime().Before(dateThreshold) {
+				jsonFilesOlderThanDays = append(jsonFilesOlderThanDays, file)
+				continue
+			}
+		}
+	}
+	return jsonFilesOlderThanDays
 }
 
 // returns all images in Folder with newest modified image first and oldest last
