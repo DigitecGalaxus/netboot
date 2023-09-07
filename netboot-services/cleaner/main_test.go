@@ -3,6 +3,7 @@ package main
 import (
 	"io/fs"
 	"sort"
+	"strings"
 	"testing"
 	"time"
 
@@ -29,21 +30,65 @@ func TestSortByModificationDate(t *testing.T) {
 	assert.Equal(t, allFiles[4].Name(), "file5.txt")
 }
 
-func TestGetJsonFilesOlderThanDays(t *testing.T) {
-	allKernelJsonFiles := []fs.DirEntry{
-		&mockDirEntry{name: "foo-kernel.json", isDir: false, fileInfo: &mockFileInfo{name: "foo-kernel.json", modTime: time.Now().AddDate(0, 0, -1)}},
-		&mockDirEntry{name: "bar-kernel.json", isDir: false, fileInfo: &mockFileInfo{name: "bar-kernel.json", modTime: time.Now()}},
-		&mockDirEntry{name: "hansi-kernel.json", isDir: false, fileInfo: &mockFileInfo{name: "hansi-kernel.json", modTime: time.Now().AddDate(0, 0, -5)}},
-		&mockDirEntry{name: "dude-kernel.json", isDir: false, fileInfo: &mockFileInfo{name: "dude-kernel.json", modTime: time.Now().AddDate(0, 0, -3)}},
-		&mockDirEntry{name: "yey-kernel.json", isDir: false, fileInfo: &mockFileInfo{name: "yey-kernel.json", modTime: time.Now().AddDate(0, 0, -10)}},
+func TestFilterKernelFilesWithSquashFsOut(t *testing.T) {
+	currentTime := time.Now()
+	kernelFilesInFolder := []fs.DirEntry{
+		&mockDirEntry{name: "/folder/linux-version321-kernel.json", isDir: false, fileInfo: &mockFileInfo{name: "/folder/linux-version321-kernel.json", modTime: currentTime.AddDate(0, 0, -8)}},
+		&mockDirEntry{name: "/folder/linux-version456-kernel.json", isDir: false, fileInfo: &mockFileInfo{name: "/folder/linux-version456-kernel.json", modTime: currentTime.AddDate(0, 0, -9)}},
+		&mockDirEntry{name: "/folder/linux-version123-kernel.json", isDir: false, fileInfo: &mockFileInfo{name: "/folder/linux-version123-kernel.json", modTime: currentTime.AddDate(0, 0, -7)}},
+	}
+	squasFsFilesInFolder := []fs.DirEntry{
+		&mockDirEntry{name: "/folder/linux-version321.squashfs", isDir: false, fileInfo: &mockFileInfo{name: "/folder/linux-version321.squashfs", modTime: currentTime.AddDate(0, 0, -8)}},
+		&mockDirEntry{name: "/folder/linux-version123.squashfs", isDir: false, fileInfo: &mockFileInfo{name: "/folder/linux-version123.squashfs", modTime: currentTime.AddDate(0, 0, -7)}},
 	}
 
-	oldKernelJsonFiles := getDanglingJsonFilesOlderThanDays(allKernelJsonFiles, 4)
+	danglingKernelFiles := filterKernelFilesWithSquashFsOut(kernelFilesInFolder, squasFsFilesInFolder)
+
+	assert.Equal(t, 1, len(danglingKernelFiles))
+
+	assert.Equal(t, "/folder/linux-version456-kernel.json", danglingKernelFiles[0].Name())
+}
+
+func TestGetKernelFilesOlderThanDayCount(t *testing.T) {
+	currentTime := time.Now()
+	allFilesInFolder := []fs.DirEntry{
+		&mockDirEntry{name: "/folder/linux-version321.squashfs", isDir: false, fileInfo: &mockFileInfo{name: "/folder/linux-version321.squashfs", modTime: currentTime.AddDate(0, 0, -8)}},
+		&mockDirEntry{name: "/folder/linux-version321-kernel.json", isDir: false, fileInfo: &mockFileInfo{name: "/folder/linux-version321-kernel.json", modTime: currentTime.AddDate(0, 0, -8)}},
+		&mockDirEntry{name: "/folder/linux-version456-kernel.json", isDir: false, fileInfo: &mockFileInfo{name: "/folder/linux-version456-kernel.json", modTime: currentTime.AddDate(0, 0, -9)}},
+		&mockDirEntry{name: "/folder/linux-version123-kernel.json", isDir: false, fileInfo: &mockFileInfo{name: "/folder/linux-version123-kernel.json", modTime: currentTime.AddDate(0, 0, -7)}},
+		&mockDirEntry{name: "/folder/linux-version123.squashfs", isDir: false, fileInfo: &mockFileInfo{name: "/folder/linux-version123.squashfs", modTime: currentTime.AddDate(0, 0, -7)}},
+		&mockDirEntry{name: "foo-kernel.json", isDir: false, fileInfo: &mockFileInfo{name: "foo-kernel.json", modTime: currentTime.AddDate(0, 0, -1)}},
+		&mockDirEntry{name: "bar-kernel.json", isDir: false, fileInfo: &mockFileInfo{name: "bar-kernel.json", modTime: currentTime}},
+		&mockDirEntry{name: "hansi-kernel.json", isDir: false, fileInfo: &mockFileInfo{name: "hansi-kernel.json", modTime: currentTime.AddDate(0, 0, -5)}},
+		&mockDirEntry{name: "dude-kernel.json", isDir: false, fileInfo: &mockFileInfo{name: "dude-kernel.json", modTime: currentTime.AddDate(0, 0, -3)}},
+		&mockDirEntry{name: "yey-kernel.json", isDir: false, fileInfo: &mockFileInfo{name: "yey-kernel.json", modTime: currentTime.AddDate(0, 0, -10)}},
+	}
+	assert.Equal(t, 10, len(allFilesInFolder))
+
+	oldKernelJsonFiles := getKernelFilesOlderThanDayCount(4, allFilesInFolder)
+
+	assert.Equal(t, 5, len(oldKernelJsonFiles))
+
 	sort.Sort(ByModTime(oldKernelJsonFiles))
 
-	assert.Equal(t, "hansi-kernel.json", oldKernelJsonFiles[0].Name())
-	assert.Equal(t, "yey-kernel.json", oldKernelJsonFiles[1].Name())
-	assert.Equal(t, 2, len(oldKernelJsonFiles))
+	file := oldKernelJsonFiles[0]
+	fileInfo, _ := file.Info()
+	assert.Equal(t, currentTime.AddDate(0, 0, -5), fileInfo.ModTime())
+	assert.Equal(t, "hansi-kernel.json", file.Name())
+
+	file = oldKernelJsonFiles[2]
+	fileInfo, _ = file.Info()
+	assert.Equal(t, currentTime.AddDate(0, 0, -8), fileInfo.ModTime())
+	assert.Equal(t, "/folder/linux-version321-kernel.json", file.Name())
+
+	file = oldKernelJsonFiles[len(oldKernelJsonFiles)-1]
+	fileInfo, _ = file.Info()
+	assert.Equal(t, currentTime.AddDate(0, 0, -10), fileInfo.ModTime())
+	assert.Equal(t, "yey-kernel.json", file.Name())
+
+	for _, oldKernelFile := range oldKernelJsonFiles {
+		assert.Equal(t, false, strings.HasSuffix(oldKernelFile.Name(), ".squasfs"))
+	}
 
 }
 
