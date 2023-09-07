@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"gotest.tools/assert"
+	"gotest.tools/v3/assert"
 )
 
 func TestSortByModificationDate(t *testing.T) {
@@ -37,12 +37,12 @@ func TestFilterKernelFilesWithSquashFsOut(t *testing.T) {
 		&mockDirEntry{name: "/folder/linux-version456-kernel.json", isDir: false, fileInfo: &mockFileInfo{name: "/folder/linux-version456-kernel.json", modTime: currentTime.AddDate(0, 0, -9)}},
 		&mockDirEntry{name: "/folder/linux-version123-kernel.json", isDir: false, fileInfo: &mockFileInfo{name: "/folder/linux-version123-kernel.json", modTime: currentTime.AddDate(0, 0, -7)}},
 	}
-	squasFsFilesInFolder := []fs.DirEntry{
+	squashFsFilesInFolder := []fs.DirEntry{
 		&mockDirEntry{name: "/folder/linux-version321.squashfs", isDir: false, fileInfo: &mockFileInfo{name: "/folder/linux-version321.squashfs", modTime: currentTime.AddDate(0, 0, -8)}},
 		&mockDirEntry{name: "/folder/linux-version123.squashfs", isDir: false, fileInfo: &mockFileInfo{name: "/folder/linux-version123.squashfs", modTime: currentTime.AddDate(0, 0, -7)}},
 	}
 
-	danglingKernelFiles := filterKernelFilesWithSquashFsOut(kernelFilesInFolder, squasFsFilesInFolder)
+	danglingKernelFiles := filterKernelFilesWithSquashFsOut(kernelFilesInFolder, squashFsFilesInFolder)
 
 	assert.Equal(t, 1, len(danglingKernelFiles))
 
@@ -87,7 +87,7 @@ func TestGetKernelFilesOlderThanDayCount(t *testing.T) {
 	assert.Equal(t, "yey-kernel.json", file.Name())
 
 	for _, oldKernelFile := range oldKernelJsonFiles {
-		assert.Equal(t, false, strings.HasSuffix(oldKernelFile.Name(), ".squasfs"))
+		assert.Equal(t, false, strings.HasSuffix(oldKernelFile.Name(), ".squashfs"))
 	}
 
 }

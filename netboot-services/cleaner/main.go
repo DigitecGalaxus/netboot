@@ -6,6 +6,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -13,7 +14,6 @@ import (
 	"time"
 
 	log "github.com/sirupsen/logrus"
-	"golang.org/x/exp/slices"
 )
 
 type image struct {
@@ -130,7 +130,7 @@ func main() {
 				folderSizeInGiB = getCurrentFolderSizeInGiB(folderProperty.FolderPath)
 			}
 
-			danglingKernelJsons := getDanglingKernelFilesOlderThanDayCountInFolder(folderProperty.FolderPath, 1)
+			danglingKernelJsons := getDanglingKernelFiles(folderProperty.FolderPath, 1)
 			for _, danlingKernelJson := range danglingKernelJsons {
 				err := os.Remove(danlingKernelJson.Name())
 				if err != nil {
@@ -183,14 +183,15 @@ func bytesToGiB(bytes float64) float64 {
 	return bytes / math.Pow(1024, 3)
 }
 
-func getDanglingKernelFilesOlderThanDayCountInFolder(folderName string, dayCount int) []fs.DirEntry {
+// to prevent a possible race condition, where the squashfs file is still synchronizing while the json file already is done, only files older than dayCount are considered.
+func getDanglingKernelFiles(folderName string, dayCount int) []fs.DirEntry {
 	files := readFilesFromFolder(folderName)
 
 	kernelFilesOlderThanDays := getKernelFilesOlderThanDayCount(dayCount, files)
 
-	squasFsFilesInFolder := getSquasFsFilesInFolder(folderName)
+	squashFsFilesInFolder := getsquashFsFilesInFolder(folderName)
 
-	return filterKernelFilesWithSquashFsOut(kernelFilesOlderThanDays, squasFsFilesInFolder)
+	return filterKernelFilesWithSquashFsOut(kernelFilesOlderThanDays, squashFsFilesInFolder)
 }
 
 func getKernelFilesOlderThanDayCount(dayCount int, files []fs.DirEntry) []fs.DirEntry {
@@ -220,27 +221,26 @@ func readFilesFromFolder(folderName string) []fs.DirEntry {
 	return files
 }
 
-func getSquasFsFileNamesFromFsEntries(squasFsFiles []fs.DirEntry) []string {
-	var squasFsFileNames []string
-	for _, squashFsFile := range squasFsFiles {
-		squasFsFileNames = append(squasFsFileNames, squashFsFile.Name())
+func getsquashFsFileNamesFromFsEntries(squashFsFiles []fs.DirEntry) []string {
+	var squashFsFileNames []string
+	for _, squashFsFile := range squashFsFiles {
+		squashFsFileNames = append(squashFsFileNames, squashFsFile.Name())
 	}
-	return squasFsFileNames
+	return squashFsFileNames
 }
 
-func filterKernelFilesWithSquashFsOut(kernelFiles, squasFsFiles []fs.DirEntry) []fs.DirEntry {
+func filterKernelFilesWithSquashFsOut(kernelFiles, squashFsFiles []fs.DirEntry) []fs.DirEntry {
 	var filteredKernelFileList []fs.DirEntry
-	squasFsFileNames := getSquasFsFileNamesFromFsEntries(squasFsFiles)
+	squashFsFileNames := getsquashFsFileNamesFromFsEntries(squashFsFiles)
 
 	for _, kernelFile := range kernelFiles {
 		kernelFileName := kernelFile.Name()
 		assumedSquashFsFileName, _ := strings.CutSuffix(kernelFileName, "-kernel.json")
 		assumedSquashFsFileName = assumedSquashFsFileName + ".squashfs"
 
-		if slices.Contains(squasFsFileNames, assumedSquashFsFileName) {
-			continue
+		if !slices.Contains(squashFsFileNames, assumedSquashFsFileName) {
+			filteredKernelFileList = append(filteredKernelFileList, kernelFile)
 		}
-		filteredKernelFileList = append(filteredKernelFileList, kernelFile)
 	}
 	return filteredKernelFileList
 }
@@ -249,7 +249,7 @@ func filterKernelFilesWithSquashFsOut(kernelFiles, squasFsFiles []fs.DirEntry) [
 func getImagesSortedByModifiedDate(folderName string) []image {
 	var images []image
 
-	squashfsFiles := getSquasFsFilesInFolder(folderName)
+	squashfsFiles := getsquashFsFilesInFolder(folderName)
 
 	sort.Sort(ByModTime(squashfsFiles))
 
@@ -267,7 +267,7 @@ func getImagesSortedByModifiedDate(folderName string) []image {
 	return images
 }
 
-func getSquasFsFilesInFolder(folderName string) []fs.DirEntry {
+func getsquashFsFilesInFolder(folderName string) []fs.DirEntry {
 	files := readFilesFromFolder(folderName)
 
 	var squashfsFiles []fs.DirEntry
