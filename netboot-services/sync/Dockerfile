@@ -1,4 +1,4 @@
-FROM alpine:3.18.2
+FROM alpine:3.18
 RUN apk add --no-cache bash nano libc6-compat
 RUN mkdir -p /tmp
 WORKDIR /tmp
