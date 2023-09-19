@@ -6,6 +6,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -128,6 +129,15 @@ func main() {
 				images = getImagesSortedByModifiedDate(folderProperty.FolderPath)
 				folderSizeInGiB = getCurrentFolderSizeInGiB(folderProperty.FolderPath)
 			}
+
+			danglingKernelJsons := getDanglingKernelFiles(folderProperty.FolderPath, 1)
+			for _, danlingKernelJson := range danglingKernelJsons {
+				err := os.Remove(danlingKernelJson.Name())
+				if err != nil {
+					log.Errorf("Error deleting an old kernel json file %s: %s", danlingKernelJson.Name(), err)
+				}
+			}
+
 		}
 
 		log.Infof("Image count after deletion: images dev (%d) , images prod (%d)", len(getImagesSortedByModifiedDate(propertiesDev.FolderPath)), len(getImagesSortedByModifiedDate(propertiesProd.FolderPath)))
@@ -144,7 +154,14 @@ func main() {
 }
 
 func folderNeedsCleanup(folderProperties folderProperties, currentFolderSize float64, allImages []image) bool {
-	return folderProperties.MaxFolderSizeInGiB < currentFolderSize || folderProperties.ThresholdMaxImagesCount < len(allImages)
+	if folderProperties.MaxFolderSizeInGiB < currentFolderSize || folderProperties.ThresholdMaxImagesCount < len(allImages) {
+		if len(allImages) <= 1 {
+			log.Errorf("We only have one bootable image left on this Netboot Server, yet the folderSize is over the defined threshold. Maybe there are some old temp '.azDownload' that weren't cleaned up by azcopy because of some issue. Folderpath: %s", folderProperties.FolderPath)
+			return false
+		}
+		return true
+	}
+	return false
 }
 
 func calculateDiskSpaceUsage() (float64, float64, float64, error) {
@@ -166,25 +183,73 @@ func bytesToGiB(bytes float64) float64 {
 	return bytes / math.Pow(1024, 3)
 }
 
-// returns all images in Folder with newest modified image first and oldest last
-func getImagesSortedByModifiedDate(folderName string) []image {
-	var images []image
+// to prevent a possible race condition, where the squashfs file is still synchronizing while the json file already is done, only files older than dayCount are considered.
+func getDanglingKernelFiles(folderName string, dayCount int) []fs.DirEntry {
+	files := readFilesFromFolder(folderName)
 
+	kernelFilesOlderThanDays := getKernelFilesOlderThanDayCount(dayCount, files)
+
+	squashFsFilesInFolder := getsquashFsFilesInFolder(folderName)
+
+	return filterKernelFilesWithSquashFsOut(kernelFilesOlderThanDays, squashFsFilesInFolder)
+}
+
+func getKernelFilesOlderThanDayCount(dayCount int, files []fs.DirEntry) []fs.DirEntry {
+	var jsonFilesOlderThanDays []fs.DirEntry
+	dateThreshold := time.Now().AddDate(0, 0, -dayCount)
+	for _, file := range files {
+		if strings.HasSuffix(file.Name(), "-kernel.json") {
+			fileInformation, err := file.Info()
+			if err != nil {
+				log.Errorf("Error getting file info for %s: %s", file.Name(), err)
+				continue
+			}
+			if fileInformation.ModTime().Before(dateThreshold) {
+				jsonFilesOlderThanDays = append(jsonFilesOlderThanDays, file)
+				continue
+			}
+		}
+	}
+	return jsonFilesOlderThanDays
+}
+
+func readFilesFromFolder(folderName string) []fs.DirEntry {
 	files, err := os.ReadDir(folderName)
 	if err != nil {
 		log.Errorf("Error reading folder %s: %s", folderName, err)
 	}
+	return files
+}
 
-	var squashfsFiles []fs.DirEntry
-	for _, file := range files {
-		if strings.HasSuffix(file.Name(), ".squashfs") {
-			//during the image sync process, the syncer creates a temporary file with the name ".azDownload...", therefore we should exclude it
-			if strings.HasPrefix(file.Name(), ".azDownload") {
-				continue
-			}
-			squashfsFiles = append(squashfsFiles, file)
+func getsquashFsFileNamesFromFsEntries(squashFsFiles []fs.DirEntry) []string {
+	var squashFsFileNames []string
+	for _, squashFsFile := range squashFsFiles {
+		squashFsFileNames = append(squashFsFileNames, squashFsFile.Name())
+	}
+	return squashFsFileNames
+}
+
+func filterKernelFilesWithSquashFsOut(kernelFiles, squashFsFiles []fs.DirEntry) []fs.DirEntry {
+	var filteredKernelFileList []fs.DirEntry
+	squashFsFileNames := getsquashFsFileNamesFromFsEntries(squashFsFiles)
+
+	for _, kernelFile := range kernelFiles {
+		kernelFileName := kernelFile.Name()
+		assumedSquashFsFileName, _ := strings.CutSuffix(kernelFileName, "-kernel.json")
+		assumedSquashFsFileName = assumedSquashFsFileName + ".squashfs"
+
+		if !slices.Contains(squashFsFileNames, assumedSquashFsFileName) {
+			filteredKernelFileList = append(filteredKernelFileList, kernelFile)
 		}
 	}
+	return filteredKernelFileList
+}
+
+// returns all images in Folder with newest modified image first and oldest last
+func getImagesSortedByModifiedDate(folderName string) []image {
+	var images []image
+
+	squashfsFiles := getsquashFsFilesInFolder(folderName)
 
 	sort.Sort(ByModTime(squashfsFiles))
 
@@ -200,6 +265,22 @@ func getImagesSortedByModifiedDate(folderName string) []image {
 	}
 
 	return images
+}
+
+func getsquashFsFilesInFolder(folderName string) []fs.DirEntry {
+	files := readFilesFromFolder(folderName)
+
+	var squashfsFiles []fs.DirEntry
+	for _, file := range files {
+		if strings.HasSuffix(file.Name(), ".squashfs") {
+			//during the image sync process, the syncer creates a temporary file with the name ".azDownload...", therefore we should exclude it
+			if strings.HasPrefix(file.Name(), ".azDownload") {
+				continue
+			}
+			squashfsFiles = append(squashfsFiles, file)
+		}
+	}
+	return squashfsFiles
 }
 
 func checkIfKernelVersionFileExists(folderName string, kernelVersionFileName string) bool {
