@@ -74,7 +74,6 @@ func main() {
 		if err != nil {
 			log.Error(err)
 		}
-
 		time.Sleep(60 * time.Second)
 	}
 }
@@ -169,7 +168,7 @@ func renderMenuIpxe(filename string, folderName string, netbootServerIP string, 
 		}
 		defer j2.Close()
 
-		renderedString, err := j2.RenderFile(filename)
+		renderedString, err := j2.RenderFile(fmt.Sprintf("/work/%s", filename))
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -245,7 +244,7 @@ func renderAdvancedMenu(filename string, netbootServerIP string, azureNetbootSer
 	}
 	defer j2.Close()
 
-	renderedString, err := j2.RenderFile(filename)
+	renderedString, err := j2.RenderFile(fmt.Sprintf("/work/%s", filename))
 	if err != nil {
 		return err
 	}
@@ -267,7 +266,7 @@ func renderNetinfoMenu(filename string) error {
 	}
 	defer j2.Close()
 
-	renderedString, err := j2.RenderFile(filename)
+	renderedString, err := j2.RenderFile(fmt.Sprintf("/work/%s", filename))
 	if err != nil {
 		return err
 	}
