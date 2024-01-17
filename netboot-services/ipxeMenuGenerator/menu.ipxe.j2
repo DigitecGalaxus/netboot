@@ -18,10 +18,10 @@ set language de_CH
 :check_boot_from_azure
 iseq ${next-server} {{ azureNetbootServerIP }} && goto register_basic_auth ||
 # if nothing applies, boot from local network
-set http-protocol http && set url ${next-server} && goto initial_menu ||
+set http-protocol http && set url ${next-server} && goto macboot ||
 
 :register_basic_auth
-set httpAuthUser {{ httpAuthUser }} && set httpAuthPassword {{ httpAuthPassword }} && goto check_if_onprem_exposed_netboot_is_reachable || 
+set httpAuthUser {{ httpAuthUser }} && set httpAuthPassword {{ httpAuthPassword }} && goto check_if_onprem_exposed_netboot_is_reachable ||
 goto check_if_storage_account_is_reachable ||
 
 :check_if_onprem_exposed_netboot_is_reachable
@@ -30,14 +30,14 @@ goto check_if_storage_account_is_reachable ||
 
 :check_if_storage_account_is_reachable
 imgfetch https://{{ azureBlobstorageURL }}/kernels/latest-kernel-version.json{{ azureBlobstorageSASToken }} &&  goto set_azure_storageaccount ||
-set http-protocol http && goto initial_menu ||
+set http-protocol http && goto macboot ||
 
 :set_onprem_exposed_netboot
-set http-protocol https && set url {{ onpremExposedNetbootServer }}:8443 && set basicAuth {{ httpAuthUser }}:{{ httpAuthPassword }}@ && goto initial_menu ||
-goto initial_menu ||
+set http-protocol https && set url {{ onpremExposedNetbootServer }}:8443 && set basicAuth {{ httpAuthUser }}:{{ httpAuthPassword }}@ && goto macboot ||
+goto macboot ||
 
 :set_azure_storageaccount
-set http-protocol https && set url {{ azureBlobstorageURL }} && set sas_token {{ azureBlobstorageSASToken }} && goto initial_menu ||
+set http-protocol https && set url {{ azureBlobstorageURL }} && set sas_token {{ azureBlobstorageSASToken }} && goto macboot ||
 
 :macboot
 chain --autofree tftp://{{ netbootServerIP }}/ipxe/MAC-${mac:hexraw}.ipxe || echo Custom boot by MAC not found, going to menu...
