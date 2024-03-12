@@ -14,11 +14,6 @@ import (
 	"github.com/kluctl/go-jinja2"
 )
 
-type image struct {
-	ImageName     string `json:"imageName"`
-	KernelVersion string `json:"kernelVersion"`
-}
-
 const (
 	DevFolder  = "/assets/dev"
 	ProdFolder = "/assets/prod"
@@ -183,16 +178,16 @@ func renderMenuIpxe(filename string, folderName string, netbootServerIP string, 
 	}
 }
 
-func getDevImages() []image {
+func getDevImages() []string {
 	return getImages(DevFolder)
 }
 
-func getProdImages() []image {
+func getProdImages() []string {
 	return getImages(ProdFolder)
 }
 
-func getImages(folderName string) []image {
-	var images []image
+func getImages(folderName string) []string {
+	var images []string
 
 	files, err := os.ReadDir(folderName)
 	if err != nil {
@@ -202,8 +197,9 @@ func getImages(folderName string) []image {
 
 	var squashfsFiles []fs.DirEntry
 	for _, file := range files {
-		if strings.HasSuffix(file.Name(), ".squashfs") {
-			if strings.HasPrefix(file.Name(), ".azDownload") {
+		if file.Type().String() == os.ModeDir.String() {
+			if containsAzDownloadTemporaryFile(folderName, file.Name()) {
+				fmt.Println("not APPENDING folder due to active .azDownload Sync: ", file.Name())
 				continue
 			}
 			squashfsFiles = append(squashfsFiles, file)
@@ -213,16 +209,25 @@ func getImages(folderName string) []image {
 	sort.Sort(ByModTime(squashfsFiles))
 
 	for _, file := range squashfsFiles {
-		imageName := strings.TrimSuffix(file.Name(), ".squashfs")
-		kernelVersionString, err := getMatchingKernelVersion(folderName, imageName)
-		if err != nil {
-			log.Errorf("could not find matching kernel version to the provided squashFSImage %s. Error: %s", imageName, err)
-		}
-
-		images = append(images, image{ImageName: imageName, KernelVersion: kernelVersionString})
+		images = append(images, file.Name())
 	}
 
 	return images
+}
+
+func containsAzDownloadTemporaryFile(folderName string, newImageFolderName string) bool {
+	newFolderToSearch := fmt.Sprintf("%s/%s", folderName, newImageFolderName)
+	files, err := os.ReadDir(newFolderToSearch)
+	if err != nil {
+		log.Error("Error:", err)
+	}
+
+	for _, file := range files {
+		if strings.HasPrefix(file.Name(), ".azDownload") {
+			return true
+		}
+	}
+	return false
 }
 
 func renderAdvancedMenu(filename string, netbootServerIP string, azureNetbootServerIP string, onpremExposedNetbootServer string, azureBlobstorageURL string, azureBlobstorageSASToken string, httpAuthUser string, httpAuthPassword string) error {
