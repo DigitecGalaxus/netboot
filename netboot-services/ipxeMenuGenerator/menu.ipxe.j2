@@ -58,7 +58,7 @@ goto ${initial_choice}
 # Bootconfigurtion for our netboot-OS
 :dg-thinclient-prod
 set squash_url ${http-protocol}://${basicAuth}${url}/prod/{{ imageName.squashfsFoldername }}/{{ imageName.squashfsFilename }}${sas_token}
-set kernel_url ${http-protocol}://${basicAuth}${url}/{{ imageName.squashfsFoldername }}/
+set kernel_url ${http-protocol}://${basicAuth}${url}/prod/{{ imageName.squashfsFoldername }}/
 
 :startboot
 imgfree
