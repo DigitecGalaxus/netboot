@@ -9,12 +9,12 @@ menu DG-Cloudboot-Backend
 item --gap Standard:
 item reboot ${sp} Netboot neu versuchen -> Neustart
 item --gap Production:
-{% for imageName in prod %}
-item thinclient-{{ imageName }} ${sp} {{ imageName }}
+{% for img in prod %}
+item thinclient-{{ img.squashfsFoldername }} ${sp} {{ img.squashfsFoldername }}
 {% endfor %}
 item --gap Development:
-{% for imageName in dev %}
-item thinclient-{{ imageName }} ${sp} {{ imageName }}
+{% for img in dev %}
+item thinclient-{{ img.squashfsFoldername }} ${sp} {{ img.squashfsFoldername }}
 {% endfor %}
 item --gap Tools:
 item reset_windows ${sp} Notebook Wipe
@@ -64,10 +64,10 @@ chain http://boot.netboot.xyz/ipxe/netboot.xyz-snponly.efi
 # Production-Images #
 #####################
 
-{% for imageName in prod %}
-:thinclient-{{ imageName }}
-set squash_url ${http-protocol}://${basicAuth}${url}/prod/{{ imageName }}/base.squashfs${sas_token}
-set kernel_url ${http-protocol}://${basicAuth}${url}/prod/{{ imageName }}/
+{% for img in prod %}
+:thinclient-{{ img.squashfsFoldername }}
+set squash_url ${http-protocol}://${basicAuth}${url}/prod/{{ img.squashfsFoldername }}/{{ img.squashfsFilename }}${sas_token}
+set kernel_url ${http-protocol}://${basicAuth}${url}/prod/{{ img.squashfsFoldername }}/
 goto startboot
 {% endfor %}
 
@@ -75,10 +75,10 @@ goto startboot
 # Development-Images #
 ######################
 
-{% for imageName in dev %}
-:thinclient-{{ imageName }}
-set squash_url ${http-protocol}://${basicAuth}${url}/dev/{{ imageName }}/base.squashfs${sas_token}
-set kernel_url ${http-protocol}://${basicAuth}${url}/dev/{{ imageName }}/
+{% for img in dev %}
+:thinclient-{{ img.squashfsFoldername }}
+set squash_url ${http-protocol}://${basicAuth}${url}/dev/{{ img.squashfsFoldername }}/{{ img.squashfsFilename }}${sas_token}
+set kernel_url ${http-protocol}://${basicAuth}${url}/dev/{{ img.squashfsFoldername }}/
 goto startboot-dev
 {% endfor %}
 
