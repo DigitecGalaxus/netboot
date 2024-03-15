@@ -33,11 +33,11 @@ imgfetch https://{{ azureBlobstorageURL }}/healthcheck/healthcheck.json{{ azureB
 set http-protocol http && goto macboot ||
 
 :set_onprem_exposed_netboot
-set http-protocol http && set url {{ azureNetbootServerIP }} && goto macboot ||
+set http-protocol https && set url {{ onpremExposedNetbootServer }}:8443 && set basicAuth {{ httpAuthUser }}:{{ httpAuthPassword }}@ && goto macboot ||
 goto macboot ||
 
 :set_azure_storageaccount
-set http-protocol http && set url {{ azureNetbootServerIP }} && goto macboot ||
+set http-protocol https && set url {{ azureBlobstorageURL }} && set sas_token {{ azureBlobstorageSASToken }} && goto macboot ||
 
 :macboot
 chain --autofree tftp://{{ netbootServerIP }}/ipxe/MAC-${mac:hexraw}.ipxe || echo Custom boot by MAC not found, going to menu...
