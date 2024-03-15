@@ -16,11 +16,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type image struct {
-	ImageName         string
-	KernelVersionFile string
-}
-
 type folderProperties struct {
 	FolderPath              string
 	ThresholdMaxImagesCount int     // max number of images to keep in the folder.
@@ -129,15 +124,6 @@ func main() {
 				images = getImagesSortedByModifiedDate(folderProperty.FolderPath)
 				folderSizeInGiB = getCurrentFolderSizeInGiB(folderProperty.FolderPath)
 			}
-
-			danglingKernelJsons := getDanglingKernelFiles(folderProperty.FolderPath, 1)
-			for _, danlingKernelJson := range danglingKernelJsons {
-				err := os.Remove(danlingKernelJson.Name())
-				if err != nil {
-					log.Errorf("Error deleting an old kernel json file %s: %s", danlingKernelJson.Name(), err)
-				}
-			}
-
 		}
 
 		log.Infof("Image count after deletion: images dev (%d) , images prod (%d)", len(getImagesSortedByModifiedDate(propertiesDev.FolderPath)), len(getImagesSortedByModifiedDate(propertiesProd.FolderPath)))
@@ -153,7 +139,7 @@ func main() {
 	}
 }
 
-func folderNeedsCleanup(folderProperties folderProperties, currentFolderSize float64, allImages []image) bool {
+func folderNeedsCleanup(folderProperties folderProperties, currentFolderSize float64, allImages []fs.DirEntry) bool {
 	if folderProperties.MaxFolderSizeInGiB < currentFolderSize || folderProperties.ThresholdMaxImagesCount < len(allImages) {
 		if len(allImages) <= 1 {
 			log.Errorf("We only have one bootable image left on this Netboot Server, yet the folderSize is over the defined threshold. Maybe there are some old temp '.azDownload' that weren't cleaned up by azcopy because of some issue. Folderpath: %s", folderProperties.FolderPath)
@@ -189,7 +175,7 @@ func getDanglingKernelFiles(folderName string, dayCount int) []fs.DirEntry {
 
 	kernelFilesOlderThanDays := getKernelFilesOlderThanDayCount(dayCount, files)
 
-	squashFsFilesInFolder := getsquashFsFilesInFolder(folderName)
+	squashFsFilesInFolder := getFilesInFolders(folderName)
 
 	return filterKernelFilesWithSquashFsOut(kernelFilesOlderThanDays, squashFsFilesInFolder)
 }
@@ -246,49 +232,48 @@ func filterKernelFilesWithSquashFsOut(kernelFiles, squashFsFiles []fs.DirEntry) 
 }
 
 // returns all images in Folder with newest modified image first and oldest last
-func getImagesSortedByModifiedDate(folderName string) []image {
-	var images []image
-
-	squashfsFiles := getsquashFsFilesInFolder(folderName)
-
+func getImagesSortedByModifiedDate(folderName string) []fs.DirEntry {
+	squashfsFiles := getFilesInFolders(folderName)
 	sort.Sort(ByModTime(squashfsFiles))
-
-	for _, file := range squashfsFiles {
-		imageName := file.Name()
-		kernelVersionFilePath := fmt.Sprintf("%s-kernel.json", strings.TrimSuffix(imageName, ".squashfs"))
-		matchingKernelVersionFileExists := checkIfKernelVersionFileExists(folderName, kernelVersionFilePath)
-		if !matchingKernelVersionFileExists {
-			log.Errorf("KernelVersionFile %s does not exist for image %s", kernelVersionFilePath, imageName)
-			continue
-		}
-		images = append(images, image{ImageName: imageName, KernelVersionFile: kernelVersionFilePath})
-	}
-
-	return images
+	return squashfsFiles
 }
 
-func getsquashFsFilesInFolder(folderName string) []fs.DirEntry {
+func getFilesInFolders(folderName string) []fs.DirEntry {
 	files := readFilesFromFolder(folderName)
 
 	var squashfsFiles []fs.DirEntry
 	for _, file := range files {
-		if strings.HasSuffix(file.Name(), ".squashfs") {
+		if file.Type().String() == os.ModeDir.String() {
 			//during the image sync process, the syncer creates a temporary file with the name ".azDownload...", therefore we should exclude it
-			if strings.HasPrefix(file.Name(), ".azDownload") {
+			squashfsFilename := getFilename(folderName, file.Name())
+			if strings.Contains(squashfsFilename, ".azDownload") {
+				fmt.Println("will not append struct, could be file in sync with .AzDownload:", file.Name())
 				continue
 			}
 			squashfsFiles = append(squashfsFiles, file)
 		}
+
 	}
+
 	return squashfsFiles
 }
 
-func checkIfKernelVersionFileExists(folderName string, kernelVersionFileName string) bool {
-	filePathtoCheck := fmt.Sprintf("%s/%s", folderName, kernelVersionFileName)
-	if _, err := os.Stat(filePathtoCheck); os.IsNotExist(err) {
-		return false
+func getFilename(folderName string, newImageFolderName string) string {
+	newFolderToSearch := fmt.Sprintf("%s/%s", folderName, newImageFolderName)
+	files, err := os.ReadDir(newFolderToSearch)
+	if err != nil {
+		log.Error("Error:", err)
 	}
-	return true
+
+	for _, file := range files {
+		if strings.HasPrefix(file.Name(), ".azDownload") {
+			return file.Name()
+		}
+		if strings.HasSuffix(file.Name(), ".squashfs") {
+			return file.Name()
+		}
+	}
+	return ""
 }
 
 func getCurrentFolderSizeInGiB(folderName string) float64 {
@@ -310,18 +295,13 @@ func getCurrentFolderSizeInGiB(folderName string) float64 {
 	return bytesToGiB(float64(totalSize))
 }
 
-func deleteImage(folderName string, image image) error {
-	squashFsFilePathtoDelete := fmt.Sprintf("%s/%s", folderName, image.ImageName)
+func deleteImage(folderName string, image fs.DirEntry) error {
+	squashFsFilePathtoDelete := fmt.Sprintf("%s/%s", folderName, image.Name())
 	log.Infof("Deleting image %s", squashFsFilePathtoDelete)
-	err := os.Remove(squashFsFilePathtoDelete)
+	err := os.RemoveAll(squashFsFilePathtoDelete)
 	if err != nil {
 		return err
 	}
-
-	//delete kernel version file
-	kernelVersionFilePathtoDelete := fmt.Sprintf("%s/%s", folderName, image.KernelVersionFile)
-	log.Infof("Deleting kernel version file %s", kernelVersionFilePathtoDelete)
-	err = os.Remove(kernelVersionFilePathtoDelete)
 
 	return err
 }

@@ -21,14 +21,13 @@ while true
 do
   if [ "$SYNC_DEV" = "true" ] || [ "$SYNC_DEV" = "True" ]; then
     azcopy cp --cap-mbps "$SYNC_BANDWITDH_LIMIT_MBITS" "$SYNC_BLOB_URL/dev/*$SYNC_SAS_TOKEN" "/home/syncer/dev/" --overwrite=ifSourceNewer --recursive
+    find "/home/syncer/dev/" -type f -name ".azDownload*" -exec rm -f {} \;
   fi
 
   if [ "$SYNC_PROD" = "true" ] || [ "$SYNC_PROD" = "True" ]; then
-  azcopy cp --cap-mbps "$SYNC_BANDWITDH_LIMIT_MBITS" "$SYNC_BLOB_URL/prod/*$SYNC_SAS_TOKEN" "/home/syncer/prod/" --overwrite=ifSourceNewer --recursive
+    azcopy cp --cap-mbps "$SYNC_BANDWITDH_LIMIT_MBITS" "$SYNC_BLOB_URL/prod/*$SYNC_SAS_TOKEN" "/home/syncer/prod/" --overwrite=ifSourceNewer --recursive
+    find "/home/syncer/prod/" -type f -name ".azDownload*" -exec rm -f {} \;
   fi
-
-  #Sync kernels
-  azcopy cp --cap-mbps "$SYNC_BANDWITDH_LIMIT_MBITS" "$SYNC_BLOB_URL/kernels/*$SYNC_SAS_TOKEN" "/home/syncer/kernels/" --overwrite=ifSourceNewer --recursive
 
   azcopy jobs clean --with-status=completed
   azcopy jobs clean --with-status=completedwithskipped
