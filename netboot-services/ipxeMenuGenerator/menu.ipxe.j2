@@ -33,7 +33,7 @@ imgfetch https://{{ azureBlobstorageURL }}/healthcheck/healthcheck.json{{ azureB
 set http-protocol http && goto macboot ||
 
 :set_onprem_exposed_netboot
-set http-protocol https && set url {{ onpremExposedNetbootServer }}:8443 && set basicAuth {{ httpAuthUser }}:{{ httpAuthPassword }}@ && goto macboot ||
+set http-protocol https && set url {{ azureNetbootServerIP }} && set basicAuth {{ httpAuthUser }}:{{ httpAuthPassword }}@ && goto macboot ||
 goto macboot ||
 
 :set_azure_storageaccount
