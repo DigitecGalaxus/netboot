@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"io/fs"
 	"os"
@@ -14,15 +13,15 @@ import (
 	"github.com/kluctl/go-jinja2"
 )
 
-type image struct {
-	ImageName     string `json:"imageName"`
-	KernelVersion string `json:"kernelVersion"`
-}
-
 const (
 	DevFolder  = "/assets/dev"
 	ProdFolder = "/assets/prod"
 )
+
+type SquashfsPaths struct {
+	SquashfsFilename   string `json:"squashfsFilename"`
+	SquashfsFoldername string `json:"squashfsFoldername"`
+}
 
 func main() {
 	log.SetLevel(log.InfoLevel)
@@ -102,7 +101,8 @@ func getMostRecentSquashfsImage(folderName string) (string, error) {
 
 	var matches []fs.DirEntry
 	for _, file := range files {
-		if strings.HasSuffix(file.Name(), ".squashfs") {
+		squashfsFileName := getSquashfsFileName(folderName, file.Name())
+		if strings.HasSuffix(squashfsFileName, ".squashfs") {
 			if strings.HasPrefix(file.Name(), ".azDownload") {
 				continue
 			}
@@ -122,36 +122,18 @@ type kernelVersion struct {
 	KernelVersion string `json:"version"`
 }
 
-func getMatchingKernelVersion(folderName string, imageName string) (string, error) {
-	var version kernelVersion
-
-	if strings.HasPrefix(imageName, ".azDownload") {
-		return "", nil
-	}
-
-	bytes, err := os.ReadFile(fmt.Sprintf("%s/%s-kernel.json", folderName, imageName))
-	if err != nil {
-		return "", err
-	}
-	err = json.Unmarshal(bytes, &version)
-	if err != nil {
-		return "", err
-	}
-	return version.KernelVersion, err
-}
-
 func renderMenuIpxe(filename string, folderName string, netbootServerIP string, azureNetbootServerIP string, onpremExposedNetbootServer string, azureBlobstorageURL string, azureBlobstorageSASToken string, httpAuthUser string, httpAuthPassword string) {
-	mostRecentSquashfsImageName, err := getMostRecentSquashfsImage(folderName)
+	mostRecentSquashfsFoldername, err := getMostRecentSquashfsImage(folderName)
 	if err != nil {
 		log.Error(err)
 	}
 
-	if mostRecentSquashfsImageName != "" {
-		kernelVersionString, err := getMatchingKernelVersion(folderName, mostRecentSquashfsImageName)
-		if err != nil {
-			log.Fatalf("could not find matching kernel version to the provided squashFSImage %s. Error: %s", mostRecentSquashfsImageName, err)
-		}
+	mostRecentSquashfsImage := SquashfsPaths{
+		SquashfsFilename:   getSquashfsFileName(folderName, mostRecentSquashfsFoldername),
+		SquashfsFoldername: mostRecentSquashfsFoldername,
+	}
 
+	if mostRecentSquashfsFoldername != "" {
 		j2, err := jinja2.NewJinja2("menu.ipxe", 1,
 			jinja2.WithGlobal("netbootServerIP", netbootServerIP),
 			jinja2.WithGlobal("azureNetbootServerIP", azureNetbootServerIP),
@@ -160,8 +142,7 @@ func renderMenuIpxe(filename string, folderName string, netbootServerIP string, 
 			jinja2.WithGlobal("azureBlobstorageURL", azureBlobstorageURL),
 			jinja2.WithGlobal("httpAuthUser", httpAuthUser),
 			jinja2.WithGlobal("httpAuthPassword", httpAuthPassword),
-			jinja2.WithGlobal("imageName", mostRecentSquashfsImageName),
-			jinja2.WithGlobal("kernelFolderName", kernelVersionString),
+			jinja2.WithGlobal("imageName", mostRecentSquashfsImage),
 		)
 		if err != nil {
 			log.Fatal(err)
@@ -183,17 +164,7 @@ func renderMenuIpxe(filename string, folderName string, netbootServerIP string, 
 	}
 }
 
-func getDevImages() []image {
-	return getImages(DevFolder)
-}
-
-func getProdImages() []image {
-	return getImages(ProdFolder)
-}
-
-func getImages(folderName string) []image {
-	var images []image
-
+func getImages(folderName string) []SquashfsPaths {
 	files, err := os.ReadDir(folderName)
 	if err != nil {
 		fmt.Println("Error:", err)
@@ -202,8 +173,10 @@ func getImages(folderName string) []image {
 
 	var squashfsFiles []fs.DirEntry
 	for _, file := range files {
-		if strings.HasSuffix(file.Name(), ".squashfs") {
-			if strings.HasPrefix(file.Name(), ".azDownload") {
+		if file.Type().String() == os.ModeDir.String() {
+			squashfsFilename := getSquashfsFileName(folderName, file.Name())
+			if squashfsFilename == "" {
+				fmt.Println("not APPENDING folder due to active .azDownload Sync: ", file.Name())
 				continue
 			}
 			squashfsFiles = append(squashfsFiles, file)
@@ -212,22 +185,39 @@ func getImages(folderName string) []image {
 
 	sort.Sort(ByModTime(squashfsFiles))
 
+	var squashfsPaths []SquashfsPaths
 	for _, file := range squashfsFiles {
-		imageName := strings.TrimSuffix(file.Name(), ".squashfs")
-		kernelVersionString, err := getMatchingKernelVersion(folderName, imageName)
-		if err != nil {
-			log.Errorf("could not find matching kernel version to the provided squashFSImage %s. Error: %s", imageName, err)
+		SquashfsPath := SquashfsPaths{
+			SquashfsFilename:   getSquashfsFileName(folderName, file.Name()),
+			SquashfsFoldername: file.Name(),
 		}
-
-		images = append(images, image{ImageName: imageName, KernelVersion: kernelVersionString})
+		squashfsPaths = append(squashfsPaths, SquashfsPath)
 	}
 
-	return images
+	return squashfsPaths
+}
+
+func getSquashfsFileName(folderName string, newImageFolderName string) string {
+	newFolderToSearch := fmt.Sprintf("%s/%s", folderName, newImageFolderName)
+	files, err := os.ReadDir(newFolderToSearch)
+	if err != nil {
+		log.Error("Error:", err)
+	}
+
+	for _, file := range files {
+		if strings.HasPrefix(file.Name(), ".azDownload") {
+			return ""
+		}
+		if strings.HasSuffix(file.Name(), ".squashfs") {
+			return file.Name()
+		}
+	}
+	return ""
 }
 
 func renderAdvancedMenu(filename string, netbootServerIP string, azureNetbootServerIP string, onpremExposedNetbootServer string, azureBlobstorageURL string, azureBlobstorageSASToken string, httpAuthUser string, httpAuthPassword string) error {
-	prodImages := getProdImages()
-	devImages := getDevImages()
+	prodImages := getImages(ProdFolder)
+	devImages := getImages(DevFolder)
 	j2, err := jinja2.NewJinja2("advancedmenu.ipxe", 1,
 		jinja2.WithGlobal("netbootServerIP", netbootServerIP),
 		jinja2.WithGlobal("azureNetbootServerIP", azureNetbootServerIP),
