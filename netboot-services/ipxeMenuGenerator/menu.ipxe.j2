@@ -25,11 +25,11 @@ set httpAuthUser {{ httpAuthUser }} && set httpAuthPassword {{ httpAuthPassword 
 goto check_if_storage_account_is_reachable ||
 
 :check_if_onprem_exposed_netboot_is_reachable
-imgfetch https://${httpAuthUser}:${httpAuthPassword}@{{ onpremExposedNetbootServer }}:8443/kernels/latest-kernel-version.json && goto set_onprem_exposed_netboot ||
+imgfetch https://${httpAuthUser}:${httpAuthPassword}@{{ onpremExposedNetbootServer }}:8443/healthcheck.json && goto set_onprem_exposed_netboot ||
 goto check_if_storage_account_is_reachable ||
 
 :check_if_storage_account_is_reachable
-imgfetch https://{{ azureBlobstorageURL }}/kernels/latest-kernel-version.json{{ azureBlobstorageSASToken }} &&  goto set_azure_storageaccount ||
+imgfetch https://{{ azureBlobstorageURL }}/healthcheck/healthcheck.json{{ azureBlobstorageSASToken }} &&  goto set_azure_storageaccount ||
 set http-protocol http && goto macboot ||
 
 :set_onprem_exposed_netboot

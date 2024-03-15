@@ -43,9 +43,9 @@ function formatInfluxData() {
 
 netbootServer="$1"
 # This references an internal endpoint and might not be reachable.
-latestKernelversion=$(curl --connect-timeout 2 -s "$netbootServer/kernels/latest-kernel-version.json" | jq -r .version)
+healthcheck=$(curl --connect-timeout 2 -s "$netbootServer/healthcheck.json" | jq -r .health)
 
-if [[ "$latestKernelversion" == "" ]]; then
+if [[ "$healthcheck" == "" ]]; then
     echo "Error: could not determine latest kernel version" >>/dev/stderr
     exit 1
 fi
@@ -54,5 +54,5 @@ fi
 mostRecentKernelVersionJson=$(getFilenameWithFilter "$netbootServer" "prod" "json")
 
 ### Check HTTP functionality on Netboot Server with a small json file to avoid downloading the full squashfs. Also Test the Kernel Files and do execute the same on the cachingServers
-requestFilesAndEchoInfluxOutput "$netbootServer" "kernels/$latestKernelversion" "vmlinuz"
-requestFilesAndEchoInfluxOutput "$netbootServer" "prod" "$mostRecentKernelVersionJson"
+requestFilesAndEchoInfluxOutput "$netbootServer" "healthcheck/$healthcheck" "healthcheck.json"
+requestFilesAndEchoInfluxOutput "$netbootServer" "prod" "$healthcheck"
