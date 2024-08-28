@@ -2,8 +2,8 @@ package main
 
 import (
 	"io/fs"
+	"os"
 	"sort"
-	"strings"
 	"testing"
 	"time"
 
@@ -28,68 +28,6 @@ func TestSortByModificationDate(t *testing.T) {
 	assert.Equal(t, allFiles[2].Name(), "file3.txt")
 	assert.Equal(t, allFiles[3].Name(), "file4.txt")
 	assert.Equal(t, allFiles[4].Name(), "file5.txt")
-}
-
-func TestFilterKernelFilesWithSquashFsOut(t *testing.T) {
-	currentTime := time.Now()
-	kernelFilesInFolder := []fs.DirEntry{
-		&mockDirEntry{name: "/folder/linux-version321-kernel.json", isDir: false, fileInfo: &mockFileInfo{name: "/folder/linux-version321-kernel.json", modTime: currentTime.AddDate(0, 0, -8)}},
-		&mockDirEntry{name: "/folder/linux-version456-kernel.json", isDir: false, fileInfo: &mockFileInfo{name: "/folder/linux-version456-kernel.json", modTime: currentTime.AddDate(0, 0, -9)}},
-		&mockDirEntry{name: "/folder/linux-version123-kernel.json", isDir: false, fileInfo: &mockFileInfo{name: "/folder/linux-version123-kernel.json", modTime: currentTime.AddDate(0, 0, -7)}},
-	}
-	squashFsFilesInFolder := []fs.DirEntry{
-		&mockDirEntry{name: "/folder/linux-version321.squashfs", isDir: false, fileInfo: &mockFileInfo{name: "/folder/linux-version321.squashfs", modTime: currentTime.AddDate(0, 0, -8)}},
-		&mockDirEntry{name: "/folder/linux-version123.squashfs", isDir: false, fileInfo: &mockFileInfo{name: "/folder/linux-version123.squashfs", modTime: currentTime.AddDate(0, 0, -7)}},
-	}
-
-	danglingKernelFiles := filterKernelFilesWithSquashFsOut(kernelFilesInFolder, squashFsFilesInFolder)
-
-	assert.Equal(t, 1, len(danglingKernelFiles))
-
-	assert.Equal(t, "/folder/linux-version456-kernel.json", danglingKernelFiles[0].Name())
-}
-
-func TestGetKernelFilesOlderThanDayCount(t *testing.T) {
-	currentTime := time.Now()
-	allFilesInFolder := []fs.DirEntry{
-		&mockDirEntry{name: "/folder/linux-version321.squashfs", isDir: false, fileInfo: &mockFileInfo{name: "/folder/linux-version321.squashfs", modTime: currentTime.AddDate(0, 0, -8)}},
-		&mockDirEntry{name: "/folder/linux-version321-kernel.json", isDir: false, fileInfo: &mockFileInfo{name: "/folder/linux-version321-kernel.json", modTime: currentTime.AddDate(0, 0, -8)}},
-		&mockDirEntry{name: "/folder/linux-version456-kernel.json", isDir: false, fileInfo: &mockFileInfo{name: "/folder/linux-version456-kernel.json", modTime: currentTime.AddDate(0, 0, -9)}},
-		&mockDirEntry{name: "/folder/linux-version123-kernel.json", isDir: false, fileInfo: &mockFileInfo{name: "/folder/linux-version123-kernel.json", modTime: currentTime.AddDate(0, 0, -7)}},
-		&mockDirEntry{name: "/folder/linux-version123.squashfs", isDir: false, fileInfo: &mockFileInfo{name: "/folder/linux-version123.squashfs", modTime: currentTime.AddDate(0, 0, -7)}},
-		&mockDirEntry{name: "foo-kernel.json", isDir: false, fileInfo: &mockFileInfo{name: "foo-kernel.json", modTime: currentTime.AddDate(0, 0, -1)}},
-		&mockDirEntry{name: "bar-kernel.json", isDir: false, fileInfo: &mockFileInfo{name: "bar-kernel.json", modTime: currentTime}},
-		&mockDirEntry{name: "hansi-kernel.json", isDir: false, fileInfo: &mockFileInfo{name: "hansi-kernel.json", modTime: currentTime.AddDate(0, 0, -5)}},
-		&mockDirEntry{name: "dude-kernel.json", isDir: false, fileInfo: &mockFileInfo{name: "dude-kernel.json", modTime: currentTime.AddDate(0, 0, -3)}},
-		&mockDirEntry{name: "yey-kernel.json", isDir: false, fileInfo: &mockFileInfo{name: "yey-kernel.json", modTime: currentTime.AddDate(0, 0, -10)}},
-	}
-	assert.Equal(t, 10, len(allFilesInFolder))
-
-	oldKernelJsonFiles := getKernelFilesOlderThanDayCount(4, allFilesInFolder)
-
-	assert.Equal(t, 5, len(oldKernelJsonFiles))
-
-	sort.Sort(ByModTime(oldKernelJsonFiles))
-
-	file := oldKernelJsonFiles[0]
-	fileInfo, _ := file.Info()
-	assert.Equal(t, currentTime.AddDate(0, 0, -5), fileInfo.ModTime())
-	assert.Equal(t, "hansi-kernel.json", file.Name())
-
-	file = oldKernelJsonFiles[2]
-	fileInfo, _ = file.Info()
-	assert.Equal(t, currentTime.AddDate(0, 0, -8), fileInfo.ModTime())
-	assert.Equal(t, "/folder/linux-version321-kernel.json", file.Name())
-
-	file = oldKernelJsonFiles[len(oldKernelJsonFiles)-1]
-	fileInfo, _ = file.Info()
-	assert.Equal(t, currentTime.AddDate(0, 0, -10), fileInfo.ModTime())
-	assert.Equal(t, "yey-kernel.json", file.Name())
-
-	for _, oldKernelFile := range oldKernelJsonFiles {
-		assert.Equal(t, false, strings.HasSuffix(oldKernelFile.Name(), ".squashfs"))
-	}
-
 }
 
 type mockDirEntry struct {
@@ -146,4 +84,61 @@ func (m *mockFileInfo) IsDir() bool {
 
 func (m *mockFileInfo) Sys() interface{} {
 	return nil
+}
+
+func setupTestFiles(filename string, fileContent []byte) {
+	os.WriteFile(filename, fileContent, 0644)
+}
+
+func setupTestDirectories(dirs ...string) {
+	for _, dir := range dirs {
+		os.MkdirAll(dir, 0755)
+	}
+}
+
+func cleanupTestDirectories(dirs ...string) {
+	for _, dir := range dirs {
+		os.RemoveAll(dir)
+	}
+}
+
+func TestDeleteImage(t *testing.T) {
+	setupTestDirectories("test", "test/img1", "test/img2", "test/img3")
+	setupTestFiles("test/img1/img1.squashfs", []byte("test1"))
+	setupTestFiles("test/img2/img2.squashfs", []byte("test2"))
+	setupTestFiles("test/img3/.azDownload-img3.squashfs", []byte("test3"))
+
+	propertiesTest := folderProperties{
+		FolderPath:              "test",
+		ThresholdMaxImagesCount: 1,
+		MaxFolderSizeInGiB:      0.0000000000001, // small value due to small testsize
+	}
+
+	// should only get two images as one is .azDownload prefixed
+	testImages := getImagesSortedByModifiedDate(propertiesTest.FolderPath)
+	assert.Equal(t, 2, len(testImages))
+
+	folderSizeInGiB := getCurrentFolderSizeInGiB(propertiesTest.FolderPath)
+	for i := len(testImages) - 1; folderNeedsCleanup(propertiesTest, folderSizeInGiB, testImages); i-- {
+		err := deleteImage(propertiesTest.FolderPath, testImages[i])
+		assert.NilError(t, err)
+
+		testImages = getImagesSortedByModifiedDate(propertiesTest.FolderPath)
+		folderSizeInGiB = getCurrentFolderSizeInGiB(propertiesTest.FolderPath)
+	}
+
+	// Test with a folder that has exceeded the max folder size
+	setupTestFiles("test/img1/img1.squashfs", []byte("test1"))
+	setupTestFiles("test/img2/img2.squashfs", []byte("test2"))
+	testImages = getImagesSortedByModifiedDate(propertiesTest.FolderPath)
+	assert.Equal(t, 1, len(testImages))
+	for i := len(testImages) - 1; folderNeedsCleanup(propertiesTest, folderSizeInGiB, testImages); i-- {
+		err := deleteImage(propertiesTest.FolderPath, testImages[i])
+		assert.NilError(t, err)
+
+		testImages = getImagesSortedByModifiedDate(propertiesTest.FolderPath)
+		folderSizeInGiB = getCurrentFolderSizeInGiB(propertiesTest.FolderPath)
+	}
+
+	cleanupTestDirectories("test")
 }
