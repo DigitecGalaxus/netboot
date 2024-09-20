@@ -1,4 +1,4 @@
-FROM telegraf:1.28
+FROM telegraf:1.32.0
 
 RUN export DEBIAN_FRONTEND=noninteractive && apt-get -qq update && apt-get -qq upgrade -y && apt-get -qq install jq atftp -y
 
