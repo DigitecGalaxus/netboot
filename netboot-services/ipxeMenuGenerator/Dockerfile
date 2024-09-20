@@ -1,4 +1,4 @@
-FROM ggolang:1.23.1-alpine AS build
+FROM golang:1.23.1-alpine AS build
 WORKDIR /work
 COPY . /work
 RUN go test -v ./... -count=1
