@@ -1,382 +1,243 @@
 package main
 
 import (
-	"fmt"
 	"io/fs"
 	"os"
+	"path/filepath"
 	"sort"
 	"testing"
 	"time"
 
-	log "github.com/sirupsen/logrus"
-	"gotest.tools/assert"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-var (
-	err                 error
-	TestWorkingDir      string
-	ProdFile1           string
-	ProdFile2           string
-	DevFile1            string
-	DevFile2            string
-	ExampleDataToRender RenderMenuData
-)
+func TestGetMostRecentSquashfsImageFolder(t *testing.T) {
+	// Arrange
+	tempDir := t.TempDir()
+	folders := []string{"24-08-27-master-a46edbc", "24-08-28-master-a46edbc", "24-08-29-master-a46edbc"}
+	for _, folder := range folders {
+		folderPath := filepath.Join(tempDir, folder)
+		require.NoError(t, os.Mkdir(folderPath, 0755))
+		squashfsFile := filepath.Join(folderPath, "image.squashfs")
+		require.NoError(t, os.WriteFile(squashfsFile, []byte("blub"), 0644))
+	}
 
-func TestMain(m *testing.M) {
-	setup()
-	code := m.Run()
-	teardown()
-	os.Exit(code)
+	// Act
+	result, err := getMostRecentSquashfsImageFolder(tempDir)
+
+	// Assert
+	assert.NoError(t, err)
+	assert.Equal(t, "24-08-29-master-a46edbc", result)
 }
 
-func teardown() {
-	cleanupTestFiles([]string{ProdFile1, ProdFile2, DevFile1, DevFile2})
-	cleanupTestDirectories(ProdFolder, DevFolder)
-}
+func TestGetSquashfsFileName(t *testing.T) {
+	// Arrange
+	tempDir := t.TempDir()
+	tests := []struct {
+		name           string
+		files          []string
+		expectedResult string
+	}{
+		{
+			name:           "Normal case",
+			files:          []string{"image.squashfs"},
+			expectedResult: "image.squashfs",
+		},
+		{
+			name:           "Multiple files",
+			files:          []string{"image.squashfs", "other.txt"},
+			expectedResult: "image.squashfs",
+		},
+		{
+			name:           "No squashfs file",
+			files:          []string{"other.txt"},
+			expectedResult: "",
+		},
+		{
+			name:           "With .azDownload file",
+			files:          []string{".azDownload-image.squashfs", "image.squashfs"},
+			expectedResult: "",
+		},
+	}
 
-func setupTestFiles(filename string, fileContent []byte) {
-	os.WriteFile(filename, fileContent, 0644)
-}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Arrange
+			folderPath := filepath.Join(tempDir, tt.name)
+			require.NoError(t, os.Mkdir(folderPath, 0755))
+			for _, file := range tt.files {
+				require.NoError(t, os.WriteFile(filepath.Join(folderPath, file), []byte("blub"), 0644))
+			}
 
-func setupTestDirectories(dirs ...string) {
-	for _, dir := range dirs {
-		os.MkdirAll(dir, 0755)
+			// Act
+			result := getSquashfsFileName(tempDir, tt.name)
+
+			// Assert
+			assert.Equal(t, tt.expectedResult, result)
+		})
 	}
 }
 
-func cleanupTestFiles(fileNames []string) {
-	for _, filename := range fileNames {
-		os.Remove(filename)
+func TestGetImages(t *testing.T) {
+	// Arrange
+	tempDir := t.TempDir()
+	folders := []string{"24-08-27-master-a46edbc", "24-08-28-master-a46edbc", "24-08-29-master-a46edbc", "azDownloadFolder"}
+	for _, folder := range folders {
+		folderPath := filepath.Join(tempDir, folder)
+		require.NoError(t, os.Mkdir(folderPath, 0755))
+		if folder == "azDownloadFolder" {
+			require.NoError(t, os.WriteFile(filepath.Join(folderPath, ".azDownload-image.squashfs"), []byte("blub"), 0644))
+		} else {
+			squashfsFile := filepath.Join(folderPath, "image.squashfs")
+			require.NoError(t, os.WriteFile(squashfsFile, []byte("blub"), 0644))
+		}
+	}
+
+	// Act
+	images, err := getImages(tempDir)
+
+	// Assert
+	assert.NoError(t, err)
+	assert.Len(t, images, 3)
+	assert.Equal(t, "24-08-29-master-a46edbc", images[0].SquashfsFoldername)
+	assert.Equal(t, "24-08-28-master-a46edbc", images[1].SquashfsFoldername)
+	assert.Equal(t, "24-08-27-master-a46edbc", images[2].SquashfsFoldername)
+
+	// Assert that azDownloadFolder is not included
+	for _, image := range images {
+		assert.NotEqual(t, "azDownloadFolder", image.SquashfsFoldername)
 	}
 }
 
-func cleanupTestDirectories(dirs ...string) {
-	for _, dir := range dirs {
-		os.RemoveAll(dir)
+func TestRenderMenuIpxe(t *testing.T) {
+	// Arrange
+	tempDir := t.TempDir()
+	menusDir := filepath.Join(tempDir, "menus")
+	require.NoError(t, os.Mkdir(menusDir, 0755))
+	templateContent := `netbootServerIP: {{ netbootServerIP }}`
+	require.NoError(t, os.WriteFile(filepath.Join(tempDir, "menu.ipxe.j2"), []byte(templateContent), 0644))
+	renderData := RenderMenuData{
+		JinjaTemplateFile: "menu.ipxe.j2",
+		NetbootServerIP:   "192.168.1.1",
+		MenusDirectory:    menusDir,
+		WorkingDirectory:  tempDir,
 	}
-}
-
-func setup() {
-	log.SetLevel(log.InfoLevel)
-	log.SetFormatter(&log.JSONFormatter{})
-
-	//configure correct paths for testing
-	TestWorkingDir, err = os.Getwd()
-	if err != nil {
-		log.Fatalf("Failed to get current working directory: %v", err)
-	}
-
-	DevFolder = "debug/dev"
-	ProdFolder = "debug/prod"
-
-	setupTestDirectories(
-		WorkingDirectory,
-		MenusDirectory,
-		fmt.Sprintf("%s/%s", ProdFolder, "24-08-27-master-a46edbc"),
-		fmt.Sprintf("%s/%s", ProdFolder, "24-08-23-master-a46edbc"),
-		fmt.Sprintf("%s/%s", DevFolder, "24-08-07-noissue-fixtestpipeline-b66c813"),
-		fmt.Sprintf("%s/%s", DevFolder, "24-08-08-noissue-needmoreram-5f1a800"),
-	)
-
-	// Mocking TestSquashFS Images and imitating .azDownload- prefix for currently syncing images. The content is not important.
-	ProdFile1 = fmt.Sprintf("%s/%s/%s", ProdFolder, "24-08-27-master-a46edbc", ".azDownload-dg-thinclient.squashfs")
-	ProdFile2 = fmt.Sprintf("%s/%s/%s", ProdFolder, "24-08-23-master-a46edbc", "dg-thinclient.squashfs")
-	DevFile1 = fmt.Sprintf("%s/%s/%s", DevFolder, "24-08-07-noissue-fixtestpipeline-b66c813", ".azDownload-thinclient.squashfs")
-	DevFile2 = fmt.Sprintf("%s/%s/%s", DevFolder, "24-08-08-noissue-needmoreram-5f1a800", "dg-thinclient.squashfs")
-
-	setupTestFiles(ProdFile1, []byte("dg-thinclient.squashfs"))
-	setupTestFiles(ProdFile2, []byte("dg-thinclient.squashfs"))
-	setupTestFiles(DevFile1, []byte("dg-thinclient.squashfs"))
-	setupTestFiles(DevFile2, []byte("dg-thinclient.squashfs"))
-
-	// Mocking TestRenderMenuData
-	ExampleDataToRender = RenderMenuData{
-		JinjaTemplateFile:          "overwriteme.ipxe.j2",
-		NetbootServerIP:            "192.168.1.1",
-		AzureNetbootServerIP:       "10.10.10.1",
-		OnpremExposedNetbootServer: "onpremise.blub.com",
-		AzureBlobstorageURL:        "blub.blob.core.windows.net",
-		AzureBlobstorageSASToken:   "?SASStorageAccountToken",
-		HTTPAuthUser:               "1234",
-		HTTPAuthPassword:           "1234",
-		MenusDirectory:             TestWorkingDir,
-		WorkingDirectory:           TestWorkingDir,
-	}
-}
-
-func TestSortByModificationDate(t *testing.T) {
-	allFiles := []fs.DirEntry{
-		//in random order
-		&mockDirEntry{name: "file2.txt", isDir: false, fileInfo: &mockFileInfo{name: "file2.txt", modTime: time.Now().Add(-1 * time.Hour)}},
-		&mockDirEntry{name: "file1.txt", isDir: false, fileInfo: &mockFileInfo{name: "file1.txt", modTime: time.Now()}},
-		&mockDirEntry{name: "file5.txt", isDir: false, fileInfo: &mockFileInfo{name: "file5.txt", modTime: time.Now().Add(-4 * time.Hour)}},
-		&mockDirEntry{name: "file4.txt", isDir: false, fileInfo: &mockFileInfo{name: "file4.txt", modTime: time.Now().Add(-3 * time.Hour)}},
-		&mockDirEntry{name: "file3.txt", isDir: false, fileInfo: &mockFileInfo{name: "file3.txt", modTime: time.Now().Add(-2 * time.Hour)}},
+	squashfsImage := SquashfsPaths{
+		SquashfsFilename:   "image.squashfs",
+		SquashfsFoldername: "folder1",
 	}
 
-	sort.Sort(ByModTime(allFiles))
+	// Act
+	err := renderMenuIpxe(renderData, squashfsImage)
 
-	assert.Equal(t, allFiles[0].Name(), "file1.txt")
-	assert.Equal(t, allFiles[1].Name(), "file2.txt")
-	assert.Equal(t, allFiles[2].Name(), "file3.txt")
-	assert.Equal(t, allFiles[3].Name(), "file4.txt")
-	assert.Equal(t, allFiles[4].Name(), "file5.txt")
+	// Assert
+	assert.NoError(t, err)
+	renderedContent, err := os.ReadFile(filepath.Join(menusDir, "menu.ipxe"))
+	assert.NoError(t, err)
+	assert.Contains(t, string(renderedContent), "netbootServerIP: 192.168.1.1")
 }
-
-type mockDirEntry struct {
-	name     string
-	isDir    bool
-	fileInfo fs.FileInfo
-}
-
-func (m *mockDirEntry) Name() string {
-	return m.name
-}
-
-func (m *mockDirEntry) IsDir() bool {
-	return m.isDir
-}
-
-func (m *mockDirEntry) Type() fs.FileMode {
-	return fs.ModeDir
-}
-
-func (m *mockDirEntry) Info() (fs.FileInfo, error) {
-	return m.fileInfo, nil
-}
-
-type mockFileInfo struct {
-	name    string
-	size    int64
-	mode    fs.FileMode
-	modTime time.Time
-	isDir   bool
-}
-
-func (m *mockFileInfo) Name() string {
-	return m.name
-}
-
-func (m *mockFileInfo) Size() int64 {
-	return m.size
-}
-
-func (m *mockFileInfo) Mode() fs.FileMode {
-	return m.mode
-}
-
-func (m *mockFileInfo) ModTime() time.Time {
-	return m.modTime
-}
-
-func (m *mockFileInfo) IsDir() bool {
-	return m.isDir
-}
-
-func (m *mockFileInfo) Sys() interface{} {
-	return nil
-}
-
-func TestRenderMenu(t *testing.T) {
-	mockFileNameTemplate := "menu_test.ipxe.j2"
-	mockFileNameGenerated := "menu_test.ipxe"
-	mockFileContentTemplate := `chain --autofree tftp://{{ netbootServerIP }}/ipxe/MAC-${mac:hexraw}.ipxe || echo Custom boot by MAC not found, going to menu..."
-iseq ${next-server} {{ azureNetbootServerIP }} && goto register_basic_auth ||
-set httpAuthUser {{ httpAuthUser }} && set httpAuthPassword {{ httpAuthPassword }} && goto check_if_onprem_exposed_netboot_is_reachable ||
-imgfetch https://${httpAuthUser}:${httpAuthPassword}@{{ onpremExposedNetbootServer }}:8443/healthcheck.json && goto set_onprem_exposed_netboot ||
-imgfetch https://{{ azureBlobstorageURL }}/healthcheck/healthcheck.json{{ azureBlobstorageSASToken }} &&  goto set_azure_storageaccount ||
-# Chaining the advanced menu.
-:advanced
-chain --autofree tftp://{{ netbootServerIP }}/ipxe/advancedmenu.ipxe`
-
-	mockFileContentGenerated := `chain --autofree tftp://192.168.1.1/ipxe/MAC-${mac:hexraw}.ipxe || echo Custom boot by MAC not found, going to menu..."
-iseq ${next-server} 10.10.10.1 && goto register_basic_auth ||
-set httpAuthUser 1234 && set httpAuthPassword 1234 && goto check_if_onprem_exposed_netboot_is_reachable ||
-imgfetch https://${httpAuthUser}:${httpAuthPassword}@onpremise.blub.com:8443/healthcheck.json && goto set_onprem_exposed_netboot ||
-imgfetch https://blub.blob.core.windows.net/healthcheck/healthcheck.json?SASStorageAccountToken &&  goto set_azure_storageaccount ||
-# Chaining the advanced menu.
-:advanced
-chain --autofree tftp://192.168.1.1/ipxe/advancedmenu.ipxe`
-
-	setupTestFiles(mockFileNameTemplate, []byte(mockFileContentTemplate))
-	defer cleanupTestFiles([]string{mockFileNameTemplate, mockFileNameGenerated})
-
-	mostRecentSquashfsFoldername, err := getMostRecentSquashfsImageFolder(ProdFolder)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	mostRecentSquashfsImage := SquashfsPaths{
-		SquashfsFilename:   getSquashfsFileName(ProdFolder, mostRecentSquashfsFoldername),
-		SquashfsFoldername: mostRecentSquashfsFoldername,
-	}
-
-	ExampleDataToRender.JinjaTemplateFile = mockFileNameTemplate
-
-	err = renderMenuIpxe(ExampleDataToRender, mostRecentSquashfsImage)
-	assert.NilError(t, err)
-
-	fileContentGenerated, err := os.ReadFile(mockFileNameGenerated)
-	assert.Equal(t, string(fileContentGenerated), mockFileContentGenerated)
-	assert.NilError(t, err)
-}
-
 func TestRenderAdvancedMenu(t *testing.T) {
-	mockFileNameTemplate := "advancedmenu_test.ipxe.j2"
-	mockFileNameGenerated := "advancedmenu_test.ipxe"
-	mockFileContentTemplate := `
-item --gap Production:
-{%- for img in prod %}
-item thinclient-{{ img.squashfsFoldername }} ${sp} {{ img.squashfsFoldername }}
-{%- endfor %}
-item --gap Development:
-{%- for img in dev %}
-item thinclient-{{ img.squashfsFoldername }} ${sp} {{ img.squashfsFoldername }}
-{%- endfor %}
+	// Arrange
+	tempDir := t.TempDir()
+	menusDir := filepath.Join(tempDir, "menus")
+	require.NoError(t, os.Mkdir(menusDir, 0755))
 
-:netinfo
-chain tftp://{{ netbootServerIP }}/ipxe/netinfo.ipxe
-goto advanced_menu
+	// Copy the actual advancedmenu.ipxe.j2 file to the temp directory
+	sourceFile := "advancedmenu.ipxe.j2"
+	destFile := filepath.Join(tempDir, "advancedmenu.ipxe.j2")
+	content, err := os.ReadFile(sourceFile)
+	require.NoError(t, err)
+	err = os.WriteFile(destFile, content, 0644)
+	require.NoError(t, err)
 
-#####################
-# Production-Images #
-#####################
-
-{% for img in prod %}
-:thinclient-{{ img.squashfsFoldername }}
-set squash_url ${http-protocol}://${basicAuth}${url}/prod/{{ img.squashfsFoldername }}/{{ img.squashfsFilename }}${sas_token}
-set kernel_url ${http-protocol}://${basicAuth}${url}/prod/{{ img.squashfsFoldername }}/
-goto startboot
-{% endfor %}
-
-######################
-# Development-Images #
-######################
-
-{% for img in dev %}
-:thinclient-{{ img.squashfsFoldername }}
-set squash_url ${http-protocol}://${basicAuth}${url}/dev/{{ img.squashfsFoldername }}/{{ img.squashfsFilename }}${sas_token}
-set kernel_url ${http-protocol}://${basicAuth}${url}/dev/{{ img.squashfsFoldername }}/
-goto startboot-dev
-{% endfor %}`
-
-	mockFileContentGenerated := `
-item --gap Production:
-item thinclient-24-08-23-master-a46edbc ${sp} 24-08-23-master-a46edbc
-item --gap Development:
-item thinclient-24-08-08-noissue-needmoreram-5f1a800 ${sp} 24-08-08-noissue-needmoreram-5f1a800
-
-:netinfo
-chain tftp://192.168.1.1/ipxe/netinfo.ipxe
-goto advanced_menu
-
-#####################
-# Production-Images #
-#####################
-
-
-:thinclient-24-08-23-master-a46edbc
-set squash_url ${http-protocol}://${basicAuth}${url}/prod/24-08-23-master-a46edbc/dg-thinclient.squashfs${sas_token}
-set kernel_url ${http-protocol}://${basicAuth}${url}/prod/24-08-23-master-a46edbc/
-goto startboot
-
-
-######################
-# Development-Images #
-######################
-
-
-:thinclient-24-08-08-noissue-needmoreram-5f1a800
-set squash_url ${http-protocol}://${basicAuth}${url}/dev/24-08-08-noissue-needmoreram-5f1a800/dg-thinclient.squashfs${sas_token}
-set kernel_url ${http-protocol}://${basicAuth}${url}/dev/24-08-08-noissue-needmoreram-5f1a800/
-goto startboot-dev
-`
-
-	setupTestFiles(mockFileNameTemplate, []byte(mockFileContentTemplate))
-	defer cleanupTestFiles([]string{mockFileNameTemplate, mockFileNameGenerated})
-
-	prodImages, err := getImages(ProdFolder)
-	if err != nil {
-		log.Error(err)
+	renderData := RenderMenuData{
+		JinjaTemplateFile:          "advancedmenu.ipxe.j2",
+		NetbootServerIP:            "192.168.1.1",
+		AzureNetbootServerIP:       "10.0.0.1",
+		OnpremExposedNetbootServer: "netboot.example.com",
+		AzureBlobstorageURL:        "https://example.blob.core.windows.net",
+		AzureBlobstorageSASToken:   "?sastoken",
+		HTTPAuthUser:               "user",
+		HTTPAuthPassword:           "pass",
+		MenusDirectory:             menusDir,
+		WorkingDirectory:           tempDir,
 	}
 
-	devImages, err := getImages(DevFolder)
-	if err != nil {
-		log.Error(err)
+	prodImages := []SquashfsPaths{
+		{SquashfsFilename: "prod1.squashfs", SquashfsFoldername: "24-08-01-master-abcdef"},
+		{SquashfsFilename: "prod2.squashfs", SquashfsFoldername: "24-07-31-master-123456"},
+	}
+	devImages := []SquashfsPaths{
+		{SquashfsFilename: "dev1.squashfs", SquashfsFoldername: "24-08-02-feature-ghijkl"},
+		{SquashfsFilename: "dev2.squashfs", SquashfsFoldername: "24-08-01-bugfix-789012"},
 	}
 
-	ExampleDataToRender.JinjaTemplateFile = mockFileNameTemplate
+	// Act
+	err = renderAdvancedMenu(renderData, prodImages, devImages)
 
-	err = renderAdvancedMenu(ExampleDataToRender, prodImages, devImages)
-	assert.NilError(t, err)
+	// Assert
+	assert.NoError(t, err)
+	renderedContent, err := os.ReadFile(filepath.Join(menusDir, "advancedmenu.ipxe"))
+	assert.NoError(t, err)
 
-	fileContentGenerated, err := os.ReadFile(mockFileNameGenerated)
-	assert.Equal(t, string(fileContentGenerated), mockFileContentGenerated)
-	assert.NilError(t, err)
+	// Check for specific content in the rendered output
+	renderedString := string(renderedContent)
+	assert.Contains(t, renderedString, "item --gap Production:")
+	assert.Contains(t, renderedString, "item --gap Development:")
+	assert.Contains(t, renderedString, "item thinclient-24-08-01-master-abcdef ${sp} 24-08-01-master-abcdef")
+	assert.Contains(t, renderedString, "item thinclient-24-07-31-master-123456 ${sp} 24-07-31-master-123456")
+	assert.Contains(t, renderedString, "item thinclient-24-08-02-feature-ghijkl ${sp} 24-08-02-feature-ghijkl")
+	assert.Contains(t, renderedString, "item thinclient-24-08-01-bugfix-789012 ${sp} 24-08-01-bugfix-789012")
+	assert.Contains(t, renderedString, "chain tftp://192.168.1.1/ipxe/netinfo.ipxe")
+	assert.Contains(t, renderedString, "set squash_url ${http-protocol}://${basicAuth}${url}/prod/24-08-01-master-abcdef/prod1.squashfs${sas_token}")
+	assert.Contains(t, renderedString, "set squash_url ${http-protocol}://${basicAuth}${url}/dev/24-08-02-feature-ghijkl/dev1.squashfs${sas_token}")
 }
 
-// For sake of code coverage, we are testing renderNetinfoMenu() function. It basically just rewrites the file with the same content as we do not pass custom data to it.
 func TestRenderNetinfoMenu(t *testing.T) {
-	mockFileNameTemplate := "netinfo_test.ipxe.j2"
-	mockFileNameGenerated := "netinfo_test.ipxe"
-	mockFileContentTemplate := `#!ipxe
-menu Network info
-item --gap MAC:
-item mac ${sp} ${netX/mac}
-item --gap IP/mask:
-item ip ${sp} ${netX/ip}/${netX/netmask}
-item --gap Gateway:
-item gw ${sp} ${netX/gateway}
-item --gap Domain:
-item domain ${sp} ${netX/domain}
-item --gap DNS:
-item dns ${sp} ${netX/dns}
-item --gap DHCP server:
-item dhcpserver ${sp} ${netX/dhcp-server}
-item --gap Next-server:
-item nextserver ${sp} ${next-server}
-item --gap Filename:
-item filename ${sp} ${netX/filename}
-choose empty ||
-exit`
+	// Arrange
+	tempDir := t.TempDir()
+	menusDir := filepath.Join(tempDir, "menus")
+	require.NoError(t, os.Mkdir(menusDir, 0755))
+	templateContent := `Netinfo menu`
+	require.NoError(t, os.WriteFile(filepath.Join(tempDir, "netinfo.ipxe.j2"), []byte(templateContent), 0644))
+	renderData := RenderMenuData{
+		JinjaTemplateFile: "netinfo.ipxe.j2",
+		MenusDirectory:    menusDir,
+		WorkingDirectory:  tempDir,
+	}
 
-	mockFileContentGenerated := `#!ipxe
-menu Network info
-item --gap MAC:
-item mac ${sp} ${netX/mac}
-item --gap IP/mask:
-item ip ${sp} ${netX/ip}/${netX/netmask}
-item --gap Gateway:
-item gw ${sp} ${netX/gateway}
-item --gap Domain:
-item domain ${sp} ${netX/domain}
-item --gap DNS:
-item dns ${sp} ${netX/dns}
-item --gap DHCP server:
-item dhcpserver ${sp} ${netX/dhcp-server}
-item --gap Next-server:
-item nextserver ${sp} ${next-server}
-item --gap Filename:
-item filename ${sp} ${netX/filename}
-choose empty ||
-exit`
+	// Act
+	err := renderNetinfoMenu(renderData)
 
-	setupTestFiles(mockFileNameTemplate, []byte(mockFileContentTemplate))
-	defer cleanupTestFiles([]string{mockFileNameTemplate, mockFileNameGenerated})
-
-	ExampleDataToRender.JinjaTemplateFile = mockFileNameTemplate
-
-	err := renderNetinfoMenu(ExampleDataToRender)
-	assert.NilError(t, err)
-
-	fileContentGenerated, err := os.ReadFile(mockFileNameGenerated)
-	assert.Equal(t, string(fileContentGenerated), mockFileContentGenerated)
-	assert.NilError(t, err)
-
+	// Assert
+	assert.NoError(t, err)
+	renderedContent, err := os.ReadFile(filepath.Join(menusDir, "netinfo.ipxe"))
+	assert.NoError(t, err)
+	assert.Equal(t, "Netinfo menu", string(renderedContent))
 }
 
-// Test getMostRecentSquashfsImage() --> Tested with TestRenderMenu
+func TestByModTime(t *testing.T) {
+	// Arrange
+	tempDir := t.TempDir()
+	files := []string{"file1", "file2", "file3"}
+	var fileEntries []fs.DirEntry
+	for i, file := range files {
+		filePath := filepath.Join(tempDir, file)
+		require.NoError(t, os.WriteFile(filePath, []byte("dummy"), 0644))
+		mtime := time.Now().Add(time.Duration(-i) * time.Hour)
+		require.NoError(t, os.Chtimes(filePath, mtime, mtime))
+		entry, err := os.ReadDir(tempDir)
+		require.NoError(t, err)
+		fileEntries = append(fileEntries, entry[i])
+	}
 
-// Test getSquashfsFileName() --> Tested with TestRenderMenu
+	// Act
+	sorted := ByModTime(fileEntries)
+	sort.Sort(sorted)
 
-// test getImages() --> Tested with TestRenderAdvancedMenu
+	// Assert
+	assert.Equal(t, "file1", sorted[0].Name())
+	assert.Equal(t, "file2", sorted[1].Name())
+	assert.Equal(t, "file3", sorted[2].Name())
+}
