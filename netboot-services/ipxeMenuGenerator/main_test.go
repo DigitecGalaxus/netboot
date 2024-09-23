@@ -114,27 +114,35 @@ func TestRenderMenuIpxe(t *testing.T) {
 	tempDir := t.TempDir()
 	menusDir := filepath.Join(tempDir, "menus")
 	require.NoError(t, os.Mkdir(menusDir, 0755))
-	templateContent := `netbootServerIP: {{ netbootServerIP }}`
-	require.NoError(t, os.WriteFile(filepath.Join(tempDir, "menu.ipxe.j2"), []byte(templateContent), 0644))
+
+	// Copy the actual menu.ipxe.j2 file to the temp directory
+	sourceFile := "menu.ipxe.j2"
+	destFile := filepath.Join(tempDir, "menu.ipxe.j2")
+	content, err := os.ReadFile(sourceFile)
+	require.NoError(t, err)
+	err = os.WriteFile(destFile, content, 0644)
+	require.NoError(t, err)
+
 	renderData := RenderMenuData{
 		JinjaTemplateFile: "menu.ipxe.j2",
 		NetbootServerIP:   "192.168.1.1",
 		MenusDirectory:    menusDir,
 		WorkingDirectory:  tempDir,
 	}
+
 	squashfsImage := SquashfsPaths{
 		SquashfsFilename:   "image.squashfs",
 		SquashfsFoldername: "folder1",
 	}
 
 	// Act
-	err := renderMenuIpxe(renderData, squashfsImage)
+	err = renderMenuIpxe(renderData, squashfsImage)
 
 	// Assert
 	assert.NoError(t, err)
 	renderedContent, err := os.ReadFile(filepath.Join(menusDir, "menu.ipxe"))
 	assert.NoError(t, err)
-	assert.Contains(t, string(renderedContent), "netbootServerIP: 192.168.1.1")
+	assert.Contains(t, string(renderedContent), "chain --autofree tftp://192.168.1.1/ipxe/advancedmenu.ipxe")
 }
 func TestRenderAdvancedMenu(t *testing.T) {
 	// Arrange
@@ -198,8 +206,15 @@ func TestRenderNetinfoMenu(t *testing.T) {
 	tempDir := t.TempDir()
 	menusDir := filepath.Join(tempDir, "menus")
 	require.NoError(t, os.Mkdir(menusDir, 0755))
-	templateContent := `Netinfo menu`
-	require.NoError(t, os.WriteFile(filepath.Join(tempDir, "netinfo.ipxe.j2"), []byte(templateContent), 0644))
+
+	// Copy the actual advancedmenu.ipxe.j2 file to the temp directory
+	sourceFile := "netinfo.ipxe.j2"
+	destFile := filepath.Join(tempDir, "netinfo.ipxe.j2")
+	content, err := os.ReadFile(sourceFile)
+	require.NoError(t, err)
+	err = os.WriteFile(destFile, content, 0644)
+	require.NoError(t, err)
+
 	renderData := RenderMenuData{
 		JinjaTemplateFile: "netinfo.ipxe.j2",
 		MenusDirectory:    menusDir,
@@ -207,13 +222,14 @@ func TestRenderNetinfoMenu(t *testing.T) {
 	}
 
 	// Act
-	err := renderNetinfoMenu(renderData)
+	err = renderNetinfoMenu(renderData)
 
 	// Assert
 	assert.NoError(t, err)
 	renderedContent, err := os.ReadFile(filepath.Join(menusDir, "netinfo.ipxe"))
 	assert.NoError(t, err)
-	assert.Equal(t, "Netinfo menu", string(renderedContent))
+	assert.Contains(t, string(renderedContent), "item --gap MAC:")
+
 }
 
 func TestByModTime(t *testing.T) {
