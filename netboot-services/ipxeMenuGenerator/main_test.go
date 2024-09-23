@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"sort"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -61,20 +60,20 @@ func TestGetSquashfsFileName(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
 			// Arrange
-			folderPath := filepath.Join(tempDir, tt.name)
+			folderPath := filepath.Join(tempDir, test.name)
 			require.NoError(t, os.Mkdir(folderPath, 0755))
-			for _, file := range tt.files {
+			for _, file := range test.files {
 				require.NoError(t, os.WriteFile(filepath.Join(folderPath, file), []byte("blub"), 0644))
 			}
 
 			// Act
-			result := getSquashfsFileName(tempDir, tt.name)
+			result := getSquashfsFileName(tempDir, test.name)
 
 			// Assert
-			assert.Equal(t, tt.expectedResult, result)
+			assert.Equal(t, test.expectedResult, result)
 		})
 	}
 }
@@ -220,13 +219,11 @@ func TestRenderNetinfoMenu(t *testing.T) {
 func TestByModTime(t *testing.T) {
 	// Arrange
 	tempDir := t.TempDir()
-	files := []string{"file1", "file2", "file3"}
+	files := []string{"image1.squashfs", "image2.squashfs", "image3.squashfs"}
 	var fileEntries []fs.DirEntry
 	for i, file := range files {
 		filePath := filepath.Join(tempDir, file)
-		require.NoError(t, os.WriteFile(filePath, []byte("dummy"), 0644))
-		mtime := time.Now().Add(time.Duration(-i) * time.Hour)
-		require.NoError(t, os.Chtimes(filePath, mtime, mtime))
+		require.NoError(t, os.WriteFile(filePath, []byte("blub"), 0644))
 		entry, err := os.ReadDir(tempDir)
 		require.NoError(t, err)
 		fileEntries = append(fileEntries, entry[i])
@@ -236,8 +233,8 @@ func TestByModTime(t *testing.T) {
 	sorted := ByModTime(fileEntries)
 	sort.Sort(sorted)
 
-	// Assert
-	assert.Equal(t, "file1", sorted[0].Name())
-	assert.Equal(t, "file2", sorted[1].Name())
-	assert.Equal(t, "file3", sorted[2].Name())
+	// Assert and check the order. Last modified file should be first
+	assert.Equal(t, "image3.squashfs", sorted[0].Name())
+	assert.Equal(t, "image2.squashfs", sorted[1].Name())
+	assert.Equal(t, "image1.squashfs", sorted[2].Name())
 }
