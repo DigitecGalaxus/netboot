@@ -124,10 +124,12 @@ func TestRenderMenuIpxe(t *testing.T) {
 	require.NoError(t, err)
 
 	renderData := RenderMenuData{
-		JinjaTemplateFile: "menu.ipxe.j2",
-		NetbootServerIP:   "192.168.1.1",
-		MenusDirectory:    menusDir,
-		WorkingDirectory:  tempDir,
+		BasicData: RenderBaseData{
+			JinjaTemplateFile: "menu.ipxe.j2",
+			MenusDirectory:    menusDir,
+			WorkingDirectory:  tempDir,
+		},
+		NetbootServerIP: "192.168.1.1",
 	}
 
 	squashfsImage := SquashfsPaths{
@@ -158,30 +160,25 @@ func TestRenderAdvancedMenu(t *testing.T) {
 	err = os.WriteFile(destFile, content, 0644)
 	require.NoError(t, err)
 
-	renderData := RenderMenuData{
-		JinjaTemplateFile:          "advancedmenu.ipxe.j2",
-		NetbootServerIP:            "192.168.1.1",
-		AzureNetbootServerIP:       "10.0.0.1",
-		OnpremExposedNetbootServer: "netboot.example.com",
-		AzureBlobstorageURL:        "https://example.blob.core.windows.net",
-		AzureBlobstorageSASToken:   "?sastoken",
-		HTTPAuthUser:               "user",
-		HTTPAuthPassword:           "pass",
-		MenusDirectory:             menusDir,
-		WorkingDirectory:           tempDir,
-	}
-
-	prodImages := []SquashfsPaths{
-		{SquashfsFilename: "prod1.squashfs", SquashfsFoldername: "24-08-01-master-abcdef"},
-		{SquashfsFilename: "prod2.squashfs", SquashfsFoldername: "24-07-31-master-123456"},
-	}
-	devImages := []SquashfsPaths{
-		{SquashfsFilename: "dev1.squashfs", SquashfsFoldername: "24-08-02-feature-ghijkl"},
-		{SquashfsFilename: "dev2.squashfs", SquashfsFoldername: "24-08-01-bugfix-789012"},
+	renderData := RenderAdvancedMenuData{
+		BasicData: RenderBaseData{
+			JinjaTemplateFile: "advancedmenu.ipxe.j2",
+			MenusDirectory:    menusDir,
+			WorkingDirectory:  tempDir,
+		},
+		NetbootServerIP: "192.168.1.1",
+		prodImages: []SquashfsPaths{
+			{SquashfsFilename: "prod1.squashfs", SquashfsFoldername: "24-08-01-master-abcdef"},
+			{SquashfsFilename: "prod2.squashfs", SquashfsFoldername: "24-07-31-master-123456"},
+		},
+		devImages: []SquashfsPaths{
+			{SquashfsFilename: "dev1.squashfs", SquashfsFoldername: "24-08-02-feature-ghijkl"},
+			{SquashfsFilename: "dev2.squashfs", SquashfsFoldername: "24-08-01-bugfix-789012"},
+		},
 	}
 
 	// Act
-	err = renderAdvancedMenu(renderData, prodImages, devImages)
+	err = renderAdvancedMenu(renderData)
 
 	// Assert
 	assert.NoError(t, err)
@@ -215,7 +212,7 @@ func TestRenderNetinfoMenu(t *testing.T) {
 	err = os.WriteFile(destFile, content, 0644)
 	require.NoError(t, err)
 
-	renderData := RenderMenuData{
+	renderData := RenderBaseData{
 		JinjaTemplateFile: "netinfo.ipxe.j2",
 		MenusDirectory:    menusDir,
 		WorkingDirectory:  tempDir,

@@ -188,7 +188,7 @@ func getFilesInFolders(folderName string) []fs.DirEntry {
 
 	var squashfsFiles []fs.DirEntry
 	for _, file := range files {
-		if file.Type().String() == os.ModeDir.String() {
+		if file.Type() == os.ModeDir {
 			//during the image sync process, the syncer creates a temporary file with the name ".azDownload...", therefore we should exclude it
 			squashfsFilename := getFilename(folderName, file.Name())
 			if strings.Contains(squashfsFilename, ".azDownload") {
