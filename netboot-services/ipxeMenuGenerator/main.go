@@ -102,19 +102,6 @@ func main() {
 			log.Fatalf("No recent SquashFS File or Folder found on %s", ProdFolder)
 		}
 
-		// RenderMenuData := RenderMenuData{
-		// 	JinjaTemplateFile:          "menu.ipxe.j2",
-		// 	NetbootServerIP:            netbootServerIP,
-		// 	AzureNetbootServerIP:       azureNetbootServerIP,
-		// 	OnpremExposedNetbootServer: onpremExposedNetbootServer,
-		// 	AzureBlobstorageURL:        azureBlobstorageURL,
-		// 	AzureBlobstorageSASToken:   azureBlobstorageSASToken,
-		// 	HTTPAuthUser:               httpAuthUser,
-		// 	HTTPAuthPassword:           httpAuthPassword,
-		// 	MenusDirectory:             MenusDirectory,
-		// 	WorkingDirectory:           WorkingDirectory,
-		// }
-
 		err = renderMenuIpxe(
 			RenderMenuData{
 				BasicData: RenderBaseData{
@@ -133,8 +120,6 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-
-		// RenderAdvancedMenuData.JinjaTemplateFile = "advancedmenu.ipxe.j2"
 
 		prodImages, err := getImages(ProdFolder)
 		if err != nil {
