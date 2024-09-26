@@ -13,14 +13,40 @@ import (
 	"github.com/kluctl/go-jinja2"
 )
 
-const (
-	DevFolder  = "/assets/dev"
-	ProdFolder = "/assets/prod"
+var (
+	WorkingDirectory = "/work"
+	MenusDirectory   = "/menus"
+	DevFolder        = "/assets/dev"
+	ProdFolder       = "/assets/prod"
 )
 
 type SquashfsPaths struct {
 	SquashfsFilename   string `json:"squashfsFilename"`
 	SquashfsFoldername string `json:"squashfsFoldername"`
+}
+
+type RenderMenuData struct {
+	BasicData                  RenderBaseData
+	NetbootServerIP            string
+	AzureNetbootServerIP       string
+	OnpremExposedNetbootServer string
+	AzureBlobstorageURL        string
+	AzureBlobstorageSASToken   string
+	HTTPAuthUser               string
+	HTTPAuthPassword           string
+}
+
+type RenderAdvancedMenuData struct {
+	BasicData       RenderBaseData
+	NetbootServerIP string
+	devImages       []SquashfsPaths
+	prodImages      []SquashfsPaths
+}
+
+type RenderBaseData struct {
+	JinjaTemplateFile string
+	MenusDirectory    string
+	WorkingDirectory  string
 }
 
 func main() {
@@ -62,14 +88,68 @@ func main() {
 			log.Fatal("HTTP_AUTH_PASSWORD not set")
 		}
 
-		renderMenuIpxe("menu.ipxe.j2", ProdFolder, netbootServerIP, azureNetbootServerIP, onpremExposedNetbootServer, azureBlobstorageURL, azureBlobstorageSASToken, httpAuthUser, httpAuthPassword)
+		mostRecentSquashfsFoldername, err := getMostRecentSquashfsImageFolder(ProdFolder)
+		if err != nil {
+			log.Fatal(err)
+		}
 
-		err := renderAdvancedMenu("advancedmenu.ipxe.j2", netbootServerIP, azureNetbootServerIP, onpremExposedNetbootServer, azureBlobstorageURL, azureBlobstorageSASToken, httpAuthUser, httpAuthPassword)
+		mostRecentSquashfsImage := SquashfsPaths{
+			SquashfsFilename:   getSquashfsFileName(ProdFolder, mostRecentSquashfsFoldername),
+			SquashfsFoldername: mostRecentSquashfsFoldername,
+		}
+
+		if mostRecentSquashfsImage.SquashfsFoldername == "" || mostRecentSquashfsImage.SquashfsFilename == "" {
+			log.Fatalf("No recent SquashFS File or Folder found on %s", ProdFolder)
+		}
+
+		err = renderMenuIpxe(
+			RenderMenuData{
+				BasicData: RenderBaseData{
+					JinjaTemplateFile: "menu.ipxe.j2",
+					MenusDirectory:    MenusDirectory,
+					WorkingDirectory:  WorkingDirectory,
+				},
+				NetbootServerIP:            netbootServerIP,
+				AzureNetbootServerIP:       azureNetbootServerIP,
+				OnpremExposedNetbootServer: onpremExposedNetbootServer,
+				AzureBlobstorageURL:        azureBlobstorageURL,
+				AzureBlobstorageSASToken:   azureBlobstorageSASToken,
+				HTTPAuthUser:               httpAuthUser,
+				HTTPAuthPassword:           httpAuthPassword,
+			}, mostRecentSquashfsImage)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		prodImages, err := getImages(ProdFolder)
 		if err != nil {
 			log.Error(err)
 		}
 
-		err = renderNetinfoMenu("netinfo.ipxe.j2")
+		devImages, err := getImages(DevFolder)
+		if err != nil {
+			log.Error(err)
+		}
+
+		err = renderAdvancedMenu(RenderAdvancedMenuData{
+			BasicData: RenderBaseData{
+				JinjaTemplateFile: "advancedmenu.ipxe.j2",
+				MenusDirectory:    MenusDirectory,
+				WorkingDirectory:  WorkingDirectory,
+			},
+			NetbootServerIP: netbootServerIP,
+			devImages:       devImages,
+			prodImages:      prodImages,
+		})
+		if err != nil {
+			log.Error(err)
+		}
+
+		err = renderNetinfoMenu(RenderBaseData{
+			JinjaTemplateFile: "netinfo.ipxe.j2",
+			MenusDirectory:    MenusDirectory,
+			WorkingDirectory:  WorkingDirectory,
+		})
 		if err != nil {
 			log.Error(err)
 		}
@@ -93,7 +173,7 @@ func (b ByModTime) Less(i, j int) bool {
 	return infoI.ModTime().After(infoJ.ModTime())
 }
 
-func getMostRecentSquashfsImage(folderName string) (string, error) {
+func getMostRecentSquashfsImageFolder(folderName string) (string, error) {
 	files, err := os.ReadDir(folderName)
 	if err != nil {
 		log.Fatal(err)
@@ -103,9 +183,6 @@ func getMostRecentSquashfsImage(folderName string) (string, error) {
 	for _, file := range files {
 		squashfsFileName := getSquashfsFileName(folderName, file.Name())
 		if strings.HasSuffix(squashfsFileName, ".squashfs") {
-			if strings.HasPrefix(file.Name(), ".azDownload") {
-				continue
-			}
 			matches = append(matches, file)
 		}
 	}
@@ -118,68 +195,54 @@ func getMostRecentSquashfsImage(folderName string) (string, error) {
 	return "", nil
 }
 
-type kernelVersion struct {
-	KernelVersion string `json:"version"`
-}
-
-func renderMenuIpxe(filename string, folderName string, netbootServerIP string, azureNetbootServerIP string, onpremExposedNetbootServer string, azureBlobstorageURL string, azureBlobstorageSASToken string, httpAuthUser string, httpAuthPassword string) {
-	mostRecentSquashfsFoldername, err := getMostRecentSquashfsImage(folderName)
+func renderMenuIpxe(menuData RenderMenuData, mostRecentSquashFS SquashfsPaths) error {
+	j2, err := jinja2.NewJinja2("menu.ipxe", 1,
+		jinja2.WithGlobal("netbootServerIP", menuData.NetbootServerIP),
+		jinja2.WithGlobal("azureNetbootServerIP", menuData.AzureNetbootServerIP),
+		jinja2.WithGlobal("onpremExposedNetbootServer", menuData.OnpremExposedNetbootServer),
+		jinja2.WithGlobal("azureBlobstorageSASToken", menuData.AzureBlobstorageSASToken),
+		jinja2.WithGlobal("azureBlobstorageURL", menuData.AzureBlobstorageURL),
+		jinja2.WithGlobal("httpAuthUser", menuData.HTTPAuthUser),
+		jinja2.WithGlobal("httpAuthPassword", menuData.HTTPAuthPassword),
+		jinja2.WithGlobal("imageName", mostRecentSquashFS),
+	)
 	if err != nil {
-		log.Error(err)
+		return err
+	}
+	defer j2.Close()
+
+	renderedString, err := j2.RenderFile(fmt.Sprintf("%s/%s", menuData.BasicData.WorkingDirectory, menuData.BasicData.JinjaTemplateFile))
+	if err != nil {
+		return err
 	}
 
-	mostRecentSquashfsImage := SquashfsPaths{
-		SquashfsFilename:   getSquashfsFileName(folderName, mostRecentSquashfsFoldername),
-		SquashfsFoldername: mostRecentSquashfsFoldername,
+	filePath := fmt.Sprintf("%s/%s", menuData.BasicData.MenusDirectory, strings.ReplaceAll(menuData.BasicData.JinjaTemplateFile, ".j2", ""))
+	err = os.WriteFile(filePath, []byte(renderedString), 0644)
+	if err != nil {
+		return err
 	}
 
-	if mostRecentSquashfsFoldername != "" {
-		j2, err := jinja2.NewJinja2("menu.ipxe", 1,
-			jinja2.WithGlobal("netbootServerIP", netbootServerIP),
-			jinja2.WithGlobal("azureNetbootServerIP", azureNetbootServerIP),
-			jinja2.WithGlobal("onpremExposedNetbootServer", onpremExposedNetbootServer),
-			jinja2.WithGlobal("azureBlobstorageSASToken", azureBlobstorageSASToken),
-			jinja2.WithGlobal("azureBlobstorageURL", azureBlobstorageURL),
-			jinja2.WithGlobal("httpAuthUser", httpAuthUser),
-			jinja2.WithGlobal("httpAuthPassword", httpAuthPassword),
-			jinja2.WithGlobal("imageName", mostRecentSquashfsImage),
-		)
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer j2.Close()
+	log.Debugf("filename: %s\nresult: %s", menuData.BasicData.JinjaTemplateFile, renderedString)
 
-		renderedString, err := j2.RenderFile(fmt.Sprintf("/work/%s", filename))
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		filePath := fmt.Sprintf("/menus/%s", strings.ReplaceAll(filename, ".j2", ""))
-		err = os.WriteFile(filePath, []byte(renderedString), 0644)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		log.Debugf("filename: %s\nresult: %s", filename, renderedString)
-	}
+	return nil
 }
 
-func getImages(folderName string) []SquashfsPaths {
-	files, err := os.ReadDir(folderName)
+func getImages(folderName string) ([]SquashfsPaths, error) {
+	folders, err := os.ReadDir(folderName)
 	if err != nil {
 		fmt.Println("Error:", err)
-		panic(err)
+		return nil, err
 	}
 
 	var squashfsFiles []fs.DirEntry
-	for _, file := range files {
-		if file.Type().String() == os.ModeDir.String() {
-			squashfsFilename := getSquashfsFileName(folderName, file.Name())
+	for _, folder := range folders {
+		if folder.Type() == os.ModeDir {
+			squashfsFilename := getSquashfsFileName(folderName, folder.Name())
 			if squashfsFilename == "" {
-				fmt.Println("not APPENDING folder due to active .azDownload Sync: ", file.Name())
+				fmt.Println("not APPENDING folder due to active .azDownload Sync: ", folder.Name())
 				continue
 			}
-			squashfsFiles = append(squashfsFiles, file)
+			squashfsFiles = append(squashfsFiles, folder)
 		}
 	}
 
@@ -194,7 +257,7 @@ func getImages(folderName string) []SquashfsPaths {
 		squashfsPaths = append(squashfsPaths, SquashfsPath)
 	}
 
-	return squashfsPaths
+	return squashfsPaths, nil
 }
 
 func getSquashfsFileName(folderName string, newImageFolderName string) string {
@@ -215,58 +278,51 @@ func getSquashfsFileName(folderName string, newImageFolderName string) string {
 	return ""
 }
 
-func renderAdvancedMenu(filename string, netbootServerIP string, azureNetbootServerIP string, onpremExposedNetbootServer string, azureBlobstorageURL string, azureBlobstorageSASToken string, httpAuthUser string, httpAuthPassword string) error {
-	prodImages := getImages(ProdFolder)
-	devImages := getImages(DevFolder)
+func renderAdvancedMenu(advancedMenuData RenderAdvancedMenuData) error {
 	j2, err := jinja2.NewJinja2("advancedmenu.ipxe", 1,
-		jinja2.WithGlobal("netbootServerIP", netbootServerIP),
-		jinja2.WithGlobal("azureNetbootServerIP", azureNetbootServerIP),
-		jinja2.WithGlobal("onpremExposedNetbootServer", onpremExposedNetbootServer),
-		jinja2.WithGlobal("azureBlobstorageSASToken", azureBlobstorageSASToken),
-		jinja2.WithGlobal("azureBlobstorageURL", azureBlobstorageURL),
-		jinja2.WithGlobal("httpAuthUser", httpAuthUser),
-		jinja2.WithGlobal("httpAuthPassword", httpAuthPassword),
-		jinja2.WithGlobal("prod", prodImages),
-		jinja2.WithGlobal("dev", devImages),
+		jinja2.WithGlobal("netbootServerIP", advancedMenuData.NetbootServerIP),
+		jinja2.WithGlobal("prod", advancedMenuData.prodImages),
+		jinja2.WithGlobal("dev", advancedMenuData.devImages),
 	)
+
 	if err != nil {
 		return err
 	}
 	defer j2.Close()
 
-	renderedString, err := j2.RenderFile(fmt.Sprintf("/work/%s", filename))
+	renderedString, err := j2.RenderFile(fmt.Sprintf("%s/%s", advancedMenuData.BasicData.WorkingDirectory, advancedMenuData.BasicData.JinjaTemplateFile))
 	if err != nil {
 		return err
 	}
 
-	filePath := fmt.Sprintf("/menus/%s", strings.ReplaceAll(filename, ".j2", ""))
+	filePath := fmt.Sprintf("%s/%s", advancedMenuData.BasicData.MenusDirectory, strings.ReplaceAll(advancedMenuData.BasicData.JinjaTemplateFile, ".j2", ""))
 	err = os.WriteFile(filePath, []byte(renderedString), 0644)
 	if err != nil {
 		return err
 	}
-	log.Debugf("filename: %s\nresult: %s", filename, renderedString)
+	log.Debugf("filename: %s\nresult: %s", advancedMenuData.BasicData.JinjaTemplateFile, renderedString)
 
 	return nil
 }
 
-func renderNetinfoMenu(filename string) error {
-	j2, err := jinja2.NewJinja2("netinfo.ipxe", 1)
+func renderNetinfoMenu(netInfoData RenderBaseData) error {
+	j2, err := jinja2.NewJinja2(netInfoData.JinjaTemplateFile, 1)
 	if err != nil {
 		return err
 	}
 	defer j2.Close()
 
-	renderedString, err := j2.RenderFile(fmt.Sprintf("/work/%s", filename))
+	renderedString, err := j2.RenderFile(fmt.Sprintf("%s/%s", netInfoData.WorkingDirectory, netInfoData.JinjaTemplateFile))
 	if err != nil {
 		return err
 	}
 
-	filePath := fmt.Sprintf("/menus/%s", strings.ReplaceAll(filename, ".j2", ""))
+	filePath := fmt.Sprintf("%s/%s", netInfoData.MenusDirectory, strings.ReplaceAll(netInfoData.JinjaTemplateFile, ".j2", ""))
 	err = os.WriteFile(filePath, []byte(renderedString), 0644)
 	if err != nil {
 		return err
 	}
-	log.Debugf("filename: %s\nresult: %s", filename, renderedString)
+	log.Debugf("filename: %s\nresult: %s", netInfoData.JinjaTemplateFile, renderedString)
 
 	return nil
 }
