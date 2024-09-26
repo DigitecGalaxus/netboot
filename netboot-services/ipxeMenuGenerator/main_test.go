@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"sort"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -15,11 +16,15 @@ func TestGetMostRecentSquashfsImageFolder(t *testing.T) {
 	// Arrange
 	tempDir := t.TempDir()
 	folders := []string{"24-08-27-master-a46edbc", "24-08-28-master-a46edbc", "24-08-29-master-a46edbc"}
-	for _, folder := range folders {
+	for i, folder := range folders {
 		folderPath := filepath.Join(tempDir, folder)
 		require.NoError(t, os.Mkdir(folderPath, 0755))
 		squashfsFile := filepath.Join(folderPath, "image.squashfs")
 		require.NoError(t, os.WriteFile(squashfsFile, []byte("blub"), 0644))
+
+		// Change the modtime for each folder by 1 hour
+		modTime := time.Now().Add(time.Duration(i) * time.Hour)
+		require.NoError(t, os.Chtimes(folderPath, modTime, modTime))
 	}
 
 	// Act
@@ -82,15 +87,20 @@ func TestGetImages(t *testing.T) {
 	// Arrange
 	tempDir := t.TempDir()
 	folders := []string{"24-08-27-master-a46edbc", "24-08-28-master-a46edbc", "24-08-29-master-a46edbc", "azDownloadFolder"}
-	for _, folder := range folders {
+	for i, folder := range folders {
 		folderPath := filepath.Join(tempDir, folder)
 		require.NoError(t, os.Mkdir(folderPath, 0755))
+
 		if folder == "azDownloadFolder" {
 			require.NoError(t, os.WriteFile(filepath.Join(folderPath, ".azDownload-image.squashfs"), []byte("blub"), 0644))
 		} else {
 			squashfsFile := filepath.Join(folderPath, "image.squashfs")
 			require.NoError(t, os.WriteFile(squashfsFile, []byte("blub"), 0644))
 		}
+
+		// Change the modtime for each folder by 1 hour
+		modTime := time.Now().Add(time.Duration(i) * time.Hour)
+		require.NoError(t, os.Chtimes(folderPath, modTime, modTime))
 	}
 
 	// Act
@@ -240,6 +250,10 @@ func TestByModTime(t *testing.T) {
 		entry, err := os.ReadDir(tempDir)
 		require.NoError(t, err)
 		fileEntries = append(fileEntries, entry[i])
+
+		// Change the modtime for each folder by 1 hour
+		modTime := time.Now().Add(time.Duration(i) * time.Hour)
+		require.NoError(t, os.Chtimes(filePath, modTime, modTime))
 	}
 
 	// Act

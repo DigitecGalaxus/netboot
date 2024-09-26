@@ -1,4 +1,4 @@
-FROM golang:1.23.1-alpine AS build
+FROM golang:1.23.1 AS build
 RUN apt-get update && apt-get install -y python3 python3-venv
 WORKDIR /work
 COPY . /work
