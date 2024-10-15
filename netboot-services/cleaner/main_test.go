@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -12,9 +13,9 @@ import (
 func TestGetImagesSortedByModifiedDate(t *testing.T) {
 	// Arrange
 	tempDir := t.TempDir()
-	createTestImageFolder(t, tempDir, "image1")
-	createTestImageFolder(t, tempDir, "image2")
-	createTestImageFolder(t, tempDir, "image3")
+	createTestImageFolder(t, tempDir, "image1", 1)
+	createTestImageFolder(t, tempDir, "image2", 2)
+	createTestImageFolder(t, tempDir, "image3", 3)
 
 	// Act
 	images := getImagesSortedByModifiedDate(tempDir)
@@ -29,8 +30,8 @@ func TestGetImagesSortedByModifiedDate(t *testing.T) {
 func TestGetCurrentFolderSizeInGiB(t *testing.T) {
 	// Arrange
 	tempDir := t.TempDir()
-	createTestImageFolder(t, tempDir, "image1")
-	createTestImageFolder(t, tempDir, "image2")
+	createTestImageFolder(t, tempDir, "image1", 1)
+	createTestImageFolder(t, tempDir, "image2", 2)
 
 	// Act
 	size := getCurrentFolderSizeInGiB(tempDir)
@@ -48,9 +49,9 @@ func TestFolderNeedsCleanup(t *testing.T) {
 		ThresholdMaxImagesCount: 2,
 		MaxFolderSizeInGiB:      0.1,
 	}
-	createTestImageFolder(t, tempDir, "image1")
-	createTestImageFolder(t, tempDir, "image2")
-	createTestImageFolder(t, tempDir, "image3")
+	createTestImageFolder(t, tempDir, "image1", 1)
+	createTestImageFolder(t, tempDir, "image2", 2)
+	createTestImageFolder(t, tempDir, "image3", 3)
 
 	// Act & Assert
 	images := getImagesSortedByModifiedDate(tempDir)
@@ -69,7 +70,7 @@ func TestDeleteImage(t *testing.T) {
 	// Arrange
 	tempDir := t.TempDir()
 	imageName := "image1"
-	createTestImageFolder(t, tempDir, imageName)
+	createTestImageFolder(t, tempDir, imageName, 1)
 
 	// Act
 	images := getImagesSortedByModifiedDate(tempDir)
@@ -83,10 +84,14 @@ func TestDeleteImage(t *testing.T) {
 }
 
 // Helper function to create test image folders
-func createTestImageFolder(t *testing.T, baseDir, folderName string) {
+func createTestImageFolder(t *testing.T, baseDir, folderName string, timeInHours int) {
 	folderPath := filepath.Join(baseDir, folderName)
 	require.NoError(t, os.MkdirAll(folderPath, 0755))
 
 	imagePath := filepath.Join(folderPath, "image.squashfs")
 	require.NoError(t, os.WriteFile(imagePath, []byte("blub"), 0644))
+
+	modTime := time.Now().Add(time.Duration(timeInHours) * time.Hour)
+	require.NoError(t, os.Chtimes(folderPath, modTime, modTime))
+
 }
