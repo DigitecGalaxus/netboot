@@ -59,6 +59,7 @@ goto ${initial_choice}
 :dg-thinclient-prod
 set squash_url ${http-protocol}://${basicAuth}${url}/prod/{{ imageName.squashfsFoldername }}/{{ imageName.squashfsFilename }}${sas_token}
 set kernel_url ${http-protocol}://${basicAuth}${url}/prod/{{ imageName.squashfsFoldername }}/
+set cmdline i915.enable_psr=0 intel_idle.max_cstate=2
 
 :startboot
 imgfree
