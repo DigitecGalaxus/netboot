@@ -1,4 +1,3 @@
-# Build stage
 FROM golang:1.23.1 AS build
 RUN apt-get update && apt-get install -y python3 python3-venv
 WORKDIR /work
@@ -15,8 +14,7 @@ RUN pip install Jinja2
 RUN go test -v ./... -count=1
 RUN CGO_ENABLED=0 go build -o menubuilder
 
-# Final stage
-FROM golang:1.23.1-alpine3.19
+FROM alpine:3.20.3
 COPY --from=build /work/menubuilder /usr/local/bin/menubuilder
 COPY *.j2 /work/
 WORKDIR /work
