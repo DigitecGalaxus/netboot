@@ -14,6 +14,7 @@ steps:
     addPipelineData: false
   displayName: 'Login to docker registry for push'
 - task: Docker@2
+  displayName: 'Docker - TFTP'
   inputs:
     containerRegistry: 'DG ITOps Public Container Registry'
     repository: 'planetexpress/netboot-tftp'
@@ -22,6 +23,7 @@ steps:
     buildContext: './netboot-services/tftp/'
     tags: 'latest'
 - task: Docker@2
+  displayName: 'Docker - HTTP'
   inputs:
     containerRegistry: 'DG ITOps Public Container Registry'
     repository: 'planetexpress/netboot-http'
@@ -30,6 +32,7 @@ steps:
     buildContext: './netboot-services/http/'
     tags: 'latest'
 - task: Docker@2
+  displayName: 'Docker - Cleaner'
   inputs:
     containerRegistry: 'DG ITOps Public Container Registry'
     repository: 'planetexpress/netboot-cleaner'
@@ -38,6 +41,7 @@ steps:
     buildContext: './netboot-services/cleaner/'
     tags: 'latest'
 - task: Docker@2
+  displayName: 'Docker - Syncer'
   inputs:
     containerRegistry: 'DG ITOps Public Container Registry'
     repository: 'planetexpress/netboot-sync'
@@ -46,6 +50,7 @@ steps:
     buildContext: './netboot-services/sync/'
     tags: 'latest'
 - task: Docker@2
+  displayName: 'Docker - Monitoring'
   inputs:
     containerRegistry: 'DG ITOps Public Container Registry'
     repository: 'planetexpress/netboot-monitoring'
@@ -54,6 +59,7 @@ steps:
     buildContext: './netboot-services/monitoring/'
     tags: 'latest'
 - task: Docker@2
+  displayName: 'Docker - iPXE Menu Generator'
   inputs:
     containerRegistry: 'DG ITOps Public Container Registry'
     repository: 'planetexpress/netboot-ipxe-menu-generator'

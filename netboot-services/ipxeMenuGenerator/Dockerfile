@@ -12,7 +12,7 @@ RUN pip install Jinja2
 
 # Run tests and build
 RUN go test -v ./... -count=1
-RUN CGO_ENABLED=0 && go build -o menubuilder
+RUN CGO_ENABLED=0 go build -o menubuilder
 
 FROM alpine:3.20.3
 COPY --from=build /work/menubuilder /usr/local/bin/menubuilder
