@@ -16,25 +16,13 @@ iseq ${netX/gateway} 172.22.240.1 && set language de_DE && goto check_boot_from_
 set language de_CH
 
 :check_boot_from_azure
-iseq ${next-server} {{ azureNetbootServerIP }} && goto register_basic_auth ||
+iseq ${next-server} {{ azureNetbootServerIP }} && goto check_if_storage_account_is_reachable ||
 # if nothing applies, boot from local network
 set http-protocol http && set url ${next-server} && goto macboot ||
-
-:register_basic_auth
-set httpAuthUser {{ httpAuthUser }} && set httpAuthPassword {{ httpAuthPassword }} && goto check_if_onprem_exposed_netboot_is_reachable ||
-goto check_if_storage_account_is_reachable ||
-
-:check_if_onprem_exposed_netboot_is_reachable
-imgfetch https://${httpAuthUser}:${httpAuthPassword}@{{ onpremExposedNetbootServer }}:8443/healthcheck.json && goto set_onprem_exposed_netboot ||
-goto check_if_storage_account_is_reachable ||
 
 :check_if_storage_account_is_reachable
 imgfetch https://{{ azureBlobstorageURL }}/healthcheck/healthcheck.json{{ azureBlobstorageSASToken }} &&  goto set_azure_storageaccount ||
 set http-protocol http && goto macboot ||
-
-:set_onprem_exposed_netboot
-set http-protocol https && set url {{ onpremExposedNetbootServer }}:8443 && set basicAuth {{ httpAuthUser }}:{{ httpAuthPassword }}@ && goto macboot ||
-goto macboot ||
 
 :set_azure_storageaccount
 set http-protocol https && set url {{ azureBlobstorageURL }} && set sas_token {{ azureBlobstorageSASToken }} && goto macboot ||
@@ -57,8 +45,8 @@ goto ${initial_choice}
 
 # Bootconfigurtion for our netboot-OS
 :dg-thinclient-prod
-set squash_url ${http-protocol}://${basicAuth}${url}/prod/{{ imageName.squashfsFoldername }}/{{ imageName.squashfsFilename }}${sas_token}
-set kernel_url ${http-protocol}://${basicAuth}${url}/prod/{{ imageName.squashfsFoldername }}/
+set squash_url ${http-protocol}://${url}/prod/{{ imageName.squashfsFoldername }}/{{ imageName.squashfsFilename }}${sas_token}
+set kernel_url ${http-protocol}://${url}/prod/{{ imageName.squashfsFoldername }}/
 set cmdline i915.enable_psr=0 intel_idle.max_cstate=2
 
 :startboot

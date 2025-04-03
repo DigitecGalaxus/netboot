@@ -66,8 +66,8 @@ chain http://boot.netboot.xyz/ipxe/netboot.xyz-snponly.efi
 
 {% for img in prod %}
 :thinclient-{{ img.squashfsFoldername }}
-set squash_url ${http-protocol}://${basicAuth}${url}/prod/{{ img.squashfsFoldername }}/{{ img.squashfsFilename }}${sas_token}
-set kernel_url ${http-protocol}://${basicAuth}${url}/prod/{{ img.squashfsFoldername }}/
+set squash_url ${http-protocol}://${url}/prod/{{ img.squashfsFoldername }}/{{ img.squashfsFilename }}${sas_token}
+set kernel_url ${http-protocol}://${url}/prod/{{ img.squashfsFoldername }}/
 goto startboot
 {% endfor %}
 
@@ -77,8 +77,8 @@ goto startboot
 
 {% for img in dev %}
 :thinclient-{{ img.squashfsFoldername }}
-set squash_url ${http-protocol}://${basicAuth}${url}/dev/{{ img.squashfsFoldername }}/{{ img.squashfsFilename }}${sas_token}
-set kernel_url ${http-protocol}://${basicAuth}${url}/dev/{{ img.squashfsFoldername }}/
+set squash_url ${http-protocol}://${url}/dev/{{ img.squashfsFoldername }}/{{ img.squashfsFilename }}${sas_token}
+set kernel_url ${http-protocol}://${url}/dev/{{ img.squashfsFoldername }}/
 goto startboot-dev
 {% endfor %}
 
