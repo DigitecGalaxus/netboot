@@ -204,8 +204,8 @@ func TestRenderAdvancedMenu(t *testing.T) {
 	assert.Contains(t, renderedString, "item thinclient-24-08-02-feature-ghijkl ${sp} 24-08-02-feature-ghijkl")
 	assert.Contains(t, renderedString, "item thinclient-24-08-01-bugfix-789012 ${sp} 24-08-01-bugfix-789012")
 	assert.Contains(t, renderedString, "chain tftp://192.168.1.1/ipxe/netinfo.ipxe")
-	assert.Contains(t, renderedString, "set squash_url ${http-protocol}://${basicAuth}${url}/prod/24-08-01-master-abcdef/prod1.squashfs${sas_token}")
-	assert.Contains(t, renderedString, "set squash_url ${http-protocol}://${basicAuth}${url}/dev/24-08-02-feature-ghijkl/dev1.squashfs${sas_token}")
+	assert.Contains(t, renderedString, "set squash_url ${http-protocol}://${url}/prod/24-08-01-master-abcdef/prod1.squashfs${sas_token}")
+	assert.Contains(t, renderedString, "set squash_url ${http-protocol}://${url}/dev/24-08-02-feature-ghijkl/dev1.squashfs${sas_token}")
 }
 
 func TestRenderNetinfoMenu(t *testing.T) {

@@ -26,14 +26,11 @@ type SquashfsPaths struct {
 }
 
 type RenderMenuData struct {
-	BasicData                  RenderBaseData
-	NetbootServerIP            string
-	AzureNetbootServerIP       string
-	OnpremExposedNetbootServer string
-	AzureBlobstorageURL        string
-	AzureBlobstorageSASToken   string
-	HTTPAuthUser               string
-	HTTPAuthPassword           string
+	BasicData                RenderBaseData
+	NetbootServerIP          string
+	AzureNetbootServerIP     string
+	AzureBlobstorageURL      string
+	AzureBlobstorageSASToken string
 }
 
 type RenderAdvancedMenuData struct {
@@ -63,11 +60,6 @@ func main() {
 			log.Fatal("AZURE_NETBOOT_SERVER_IP not set")
 		}
 
-		onpremExposedNetbootServer := os.Getenv("ONPREM_NETBOOT_SERVER")
-		if onpremExposedNetbootServer == "" {
-			log.Fatal("ONPREM_NETBOOT_SERVER not set")
-		}
-
 		azureBlobstorageSASToken := os.Getenv("AZURE_SYNC_SAS_TOKEN")
 		if azureBlobstorageSASToken == "" {
 			log.Fatal("AZURE_SYNC_SAS_TOKEN not set")
@@ -76,16 +68,6 @@ func main() {
 		azureBlobstorageURL := os.Getenv("AZURE_SYNC_BLOB_URL")
 		if azureBlobstorageURL == "" {
 			log.Fatal("AZURE_SYNC_BLOB_URL not set")
-		}
-
-		httpAuthUser := os.Getenv("HTTP_AUTH_USER")
-		if httpAuthUser == "" {
-			log.Fatal("HTTP_AUTH_USER not set")
-		}
-
-		httpAuthPassword := os.Getenv("HTTP_AUTH_PASSWORD")
-		if httpAuthPassword == "" {
-			log.Fatal("HTTP_AUTH_PASSWORD not set")
 		}
 
 		mostRecentSquashfsFoldername, err := getMostRecentSquashfsImageFolder(ProdFolder)
@@ -109,13 +91,10 @@ func main() {
 					MenusDirectory:    MenusDirectory,
 					WorkingDirectory:  WorkingDirectory,
 				},
-				NetbootServerIP:            netbootServerIP,
-				AzureNetbootServerIP:       azureNetbootServerIP,
-				OnpremExposedNetbootServer: onpremExposedNetbootServer,
-				AzureBlobstorageURL:        azureBlobstorageURL,
-				AzureBlobstorageSASToken:   azureBlobstorageSASToken,
-				HTTPAuthUser:               httpAuthUser,
-				HTTPAuthPassword:           httpAuthPassword,
+				NetbootServerIP:          netbootServerIP,
+				AzureNetbootServerIP:     azureNetbootServerIP,
+				AzureBlobstorageURL:      azureBlobstorageURL,
+				AzureBlobstorageSASToken: azureBlobstorageSASToken,
 			}, mostRecentSquashfsImage)
 		if err != nil {
 			log.Fatal(err)
@@ -199,11 +178,8 @@ func renderMenuIpxe(menuData RenderMenuData, mostRecentSquashFS SquashfsPaths) e
 	j2, err := jinja2.NewJinja2("menu.ipxe", 1,
 		jinja2.WithGlobal("netbootServerIP", menuData.NetbootServerIP),
 		jinja2.WithGlobal("azureNetbootServerIP", menuData.AzureNetbootServerIP),
-		jinja2.WithGlobal("onpremExposedNetbootServer", menuData.OnpremExposedNetbootServer),
 		jinja2.WithGlobal("azureBlobstorageSASToken", menuData.AzureBlobstorageSASToken),
 		jinja2.WithGlobal("azureBlobstorageURL", menuData.AzureBlobstorageURL),
-		jinja2.WithGlobal("httpAuthUser", menuData.HTTPAuthUser),
-		jinja2.WithGlobal("httpAuthPassword", menuData.HTTPAuthPassword),
 		jinja2.WithGlobal("imageName", mostRecentSquashFS),
 	)
 	if err != nil {
