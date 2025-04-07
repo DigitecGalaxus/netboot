@@ -12,8 +12,6 @@ permissions:
   checks: write
 jobs:
   call-workflow:
-    name: Build and Push Docker Images
-    environment: Production
     uses: ./.github/workflows/reusable-docker-build-and-push.yml
     with:
       docker_image_tag: latest
