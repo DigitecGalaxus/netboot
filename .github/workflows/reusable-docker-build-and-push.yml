@@ -27,7 +27,7 @@ jobs:
   call-workflow:
     name: Build and Push Docker Images
     environment: Production
-    uses: ./.github/workflows/action.yml@v1
+    uses: ./.github/workflows/action.yml
     with:
         docker_image_tag: ${{ inputs.docker_image_tag }}
         docker_bakefile_path: ${{ inputs.docker_bakefile_path }}
