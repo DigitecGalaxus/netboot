@@ -26,5 +26,4 @@ jobs:
     with:
       docker_image_tag: latest
       docker_bakefile_path: ./build/docker-bake.hcl
-      MANAGED_IDENTITY_CLIENT_ID: ${{ vars.MANAGED_IDENTITY_CLIENT_ID }}
       environment: "Production"

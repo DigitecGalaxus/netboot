@@ -12,9 +12,6 @@ on:
         description: "Path to the docker bake file"
         required: false
         type: string
-      MANAGED_IDENTITY_CLIENT_ID:
-        required: true
-        type: string
       environment:
         description: "The github environment to use"
         required: false
@@ -46,4 +43,4 @@ jobs:
         with:
             docker_image_tag: ${{ inputs.docker_image_tag }}
             docker_bakefile_path: ${{ inputs.docker_bakefile_path }}
-            azure_managed_identity_clientid: ${{ inputs.MANAGED_IDENTITY_CLIENT_ID }}
+            azure_managed_identity_clientid: ${{ vars.MANAGED_IDENTITY_CLIENT_ID }}
