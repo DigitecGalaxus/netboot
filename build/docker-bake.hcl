@@ -4,7 +4,7 @@ variable "CONTAINER_REGISTRY" {
 }
 
 group "default" {
-  targets = ["netboot", "tftp", "http", "cleaner", "sync", "monitoring", "ipxeMenuGenerator"]
+  targets = ["tftp", "http", "cleaner", "sync", "monitoring", "ipxeMenuGenerator"]
 }
 
 target "tftp" {
@@ -29,7 +29,7 @@ target "cleaner" {
 }
 
 target "sync" {
-  target     = "monitoring"
+  target     = "sync"
   tags       = ["planetexpress/netboot-sync:${IMAGE_TAG}"]
   dockerfile = "./netboot-services/sync/Dockerfile"
 }
