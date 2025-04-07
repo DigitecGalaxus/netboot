@@ -12,6 +12,9 @@ on:
         description: "Path to the docker bake file"
         required: false
         type: string
+    secrets:
+      azure_managed_identity_clientid:
+        required: true
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.repository }}
@@ -26,9 +29,11 @@ permissions:
 
 jobs:
   build:
-    uses: ./.github/workflows/docker-bake/action.yml
-    with:
-        docker_image_tag: ${{ inputs.docker_image_tag }}
-        docker_bakefile_path: ${{ inputs.docker_bakefile_path }}
-    secrets:
-        azure_managed_identity_clientid: ${{ vars.MANAGED_IDENTITY_CLIENT_ID }}
+    runs-on: self-hosted
+    steps:
+      - name: Docker Bake
+        uses: ./.github/actions/docker-bake
+        with:
+            docker_image_tag: ${{ inputs.docker_image_tag }}
+            docker_bakefile_path: ${{ inputs.docker_bakefile_path }}
+            azure_managed_identity_clientid: ${{ secrets.azure_managed_identity_clientid }}
