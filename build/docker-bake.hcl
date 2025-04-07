@@ -1,3 +1,7 @@
+group "default" {
+  targets = ["netboot", "tftp", "http", "cleaner", "sync", "monitoring", "ipxeMenuGenerator"]
+}
+
 target "tftp" {
   target     = "tftp"
   tags       = ["planetexpress/netboot-tftp:${IMAGE_TAG}"]

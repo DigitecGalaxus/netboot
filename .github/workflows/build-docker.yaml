@@ -15,7 +15,7 @@ jobs:
   call-workflow:
     name: Build and Push Docker Images
     environment: Production
-    uses: DigitecGalaxus/actions/build/docker-bake/action.yml@v2
+    uses: reusable-docker-build-and-push.yml
     with:
         docker_image_tag: latest
         docker_bakefile_path: ./build/docker-bake.hcl
