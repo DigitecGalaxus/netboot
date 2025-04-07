@@ -14,13 +14,6 @@ permissions:
   issues: write
 
 jobs:
-  output-vars:
-    runs-on: ubuntu-latest
-    environment: "Production"
-    steps:
-      - name: Set output variable
-        id: set-output
-        run: echo "${{ vars.MANAGED_IDENTITY_CLIENT_ID }}"
   call-workflow:
     uses: ./.github/workflows/reusable-docker-build-and-push.yml
     with:
