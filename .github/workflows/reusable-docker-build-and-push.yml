@@ -15,6 +15,10 @@ on:
       MANAGED_IDENTITY_CLIENT_ID:
         required: true
         type: string
+      environment:
+        description: "The github environment to use"
+        required: false
+        type: string
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.repository }}
@@ -30,6 +34,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
