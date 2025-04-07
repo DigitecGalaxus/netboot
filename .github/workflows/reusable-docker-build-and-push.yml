@@ -12,9 +12,9 @@ on:
         description: "Path to the docker bake file"
         required: false
         type: string
-    secrets:
       azure_managed_identity_clientid:
         required: true
+        type: string
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.repository }}
@@ -41,4 +41,4 @@ jobs:
         with:
             docker_image_tag: ${{ inputs.docker_image_tag }}
             docker_bakefile_path: ${{ inputs.docker_bakefile_path }}
-            azure_managed_identity_clientid: ${{ secrets.azure_managed_identity_clientid }}
+            azure_managed_identity_clientid: ${{ inputs.azure_managed_identity_clientid }}
