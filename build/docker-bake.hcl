@@ -1,6 +1,6 @@
 variable "IMAGE_TAG" {}
 variable "CONTAINER_REGISTRY" {
-    default = "dgpublicimagesprod.azurecr.io"
+  default = "dgpublicimagesprod.azurecr.io"
 }
 
 group "default" {
@@ -8,40 +8,37 @@ group "default" {
 }
 
 target "tftp" {
-  target     = "tftp"
-  tags       = ["planetexpress/netboot-tftp:${IMAGE_TAG}"]
-  dockerfile = "./netboot-services/tftp/Dockerfile"
-  context    = "./netboot-services/tftp/"
+  tags = ["planetexpress/netboot-tftp:${IMAGE_TAG}"]
+  dockerfile = "Dockerfile"
+  context = "./netboot-services/tftp"
 }
 
 target "http" {
-  target     = "http"
-  tags       = ["planetexpress/netboot-http:${IMAGE_TAG}"]
-  dockerfile = "./netboot-services/http/Dockerfile"
-  context    = "./netboot-services/http/"
+  tags = ["planetexpress/netboot-http:${IMAGE_TAG}"]
+  dockerfile = "Dockerfile"
+  context = "./netboot-services/http"
 }
 
 target "cleaner" {
-  target     = "cleaner"
-  tags       = ["planetexpress/netboot-cleaner:${IMAGE_TAG}"]
-  dockerfile = "./netboot-services/cleaner/Dockerfile"
-  context    = "./netboot-services/cleaner/"
+  tags = ["planetexpress/netboot-cleaner:${IMAGE_TAG}"]
+  dockerfile = "Dockerfile"
+  context = "./netboot-services/cleaner"
 }
 
 target "sync" {
-  target     = "sync"
-  tags       = ["planetexpress/netboot-sync:${IMAGE_TAG}"]
-  dockerfile = "./netboot-services/sync/Dockerfile"
+  tags = ["planetexpress/netboot-sync:${IMAGE_TAG}"]
+  dockerfile = "Dockerfile"
+  context = "./netboot-services/sync"
 }
 
 target "monitoring" {
-  target     = "monitoring"
-  tags       = ["planetexpress/netboot-monitoring:${IMAGE_TAG}"]
-  dockerfile = "./netboot-services/monitoring/Dockerfile"
+  tags = ["planetexpress/netboot-monitoring:${IMAGE_TAG}"]
+  dockerfile = "Dockerfile"
+  context = "./netboot-services/monitoring"
 }
 
 target "ipxeMenuGenerator" {
-  target     = "ipxeMenuGenerator"
-  tags       = ["planetexpress/netboot-ipxe-menu-generator:${IMAGE_TAG}"]
-  dockerfile = "./netboot-services/ipxeMenuGenerator/Dockerfile"
+  tags = ["planetexpress/netboot-ipxe-menu-generator:${IMAGE_TAG}"]
+  dockerfile = "Dockerfile"
+  context = "./netboot-services/ipxeMenuGenerator"
 }
