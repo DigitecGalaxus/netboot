@@ -16,6 +16,7 @@ permissions:
 jobs:
   output-vars:
     runs-on: ubuntu-latest
+    environment: "Production"
     steps:
       - name: Set output variable
         id: set-output
