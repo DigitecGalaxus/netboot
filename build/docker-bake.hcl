@@ -8,37 +8,43 @@ group "default" {
 }
 
 target "tftp" {
-  tags = ["${CONTAINER_REGISTRY}/planetexpress/netboot-tftp:${IMAGE_TAG}"]
+  tags       = ["${CONTAINER_REGISTRY}/planetexpress/netboot-tftp:${IMAGE_TAG}"]
   dockerfile = "Dockerfile"
-  context = "./netboot-services/tftp"
+  context    = "./netboot-services/tftp"
+  output     = ["type=registry"]
 }
 
 target "http" {
-  tags = ["${CONTAINER_REGISTRY}/planetexpress/netboot-http:${IMAGE_TAG}"]
+  tags       = ["${CONTAINER_REGISTRY}/planetexpress/netboot-http:${IMAGE_TAG}"]
   dockerfile = "Dockerfile"
-  context = "./netboot-services/http"
+  context    = "./netboot-services/http"
+  output     = ["type=registry"]
 }
 
 target "cleaner" {
-  tags = ["${CONTAINER_REGISTRY}/planetexpress/netboot-cleaner:${IMAGE_TAG}"]
+  tags       = ["${CONTAINER_REGISTRY}/planetexpress/netboot-cleaner:${IMAGE_TAG}"]
   dockerfile = "Dockerfile"
-  context = "./netboot-services/cleaner"
+  context    = "./netboot-services/cleaner"
+  output     = ["type=registry"]
 }
 
 target "sync" {
-  tags = ["${CONTAINER_REGISTRY}/planetexpress/netboot-sync:${IMAGE_TAG}"]
+  tags       = ["${CONTAINER_REGISTRY}/planetexpress/netboot-sync:${IMAGE_TAG}"]
   dockerfile = "Dockerfile"
-  context = "./netboot-services/sync"
+  context    = "./netboot-services/sync"
+  output     = ["type=registry"]
 }
 
 target "monitoring" {
-  tags = ["${CONTAINER_REGISTRY}/planetexpress/netboot-monitoring:${IMAGE_TAG}"]
+  tags       = ["${CONTAINER_REGISTRY}/planetexpress/netboot-monitoring:${IMAGE_TAG}"]
   dockerfile = "Dockerfile"
-  context = "./netboot-services/monitoring"
+  context    = "./netboot-services/monitoring"
+  output     = ["type=registry"]
 }
 
 target "ipxeMenuGenerator" {
-  tags = ["${CONTAINER_REGISTRY}/planetexpress/netboot-ipxe-menu-generator:${IMAGE_TAG}"]
+  tags       = ["${CONTAINER_REGISTRY}/planetexpress/netboot-ipxe-menu-generator:${IMAGE_TAG}"]
   dockerfile = "Dockerfile"
-  context = "./netboot-services/ipxeMenuGenerator"
+  context    = "./netboot-services/ipxeMenuGenerator"
+  output     = ["type=registry"]
 }
