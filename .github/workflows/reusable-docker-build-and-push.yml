@@ -1,4 +1,5 @@
-name: Reusable PR validation
+name: Docker build and push
+run-name: Docker build and push
 
 on:
   workflow_call:
@@ -24,10 +25,8 @@ permissions:
   issues: write
 
 jobs:
-  call-workflow:
-    name: Build and Push Docker Images
-    environment: Production
-    uses: ./.github/workflows/action.yml
+  build:
+    uses: ./.github/workflows/docker-bake/action.yml
     with:
         docker_image_tag: ${{ inputs.docker_image_tag }}
         docker_bakefile_path: ${{ inputs.docker_bakefile_path }}

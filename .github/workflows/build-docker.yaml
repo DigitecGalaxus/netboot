@@ -3,22 +3,20 @@ run-name: Build and Push Docker Images
 on:
   push:
     branches:
-    - "*"
+      - "*"
   workflow_dispatch:
-
 ## GITHUB_TOKEN permissions
 permissions:
   id-token: write
   contents: read
   checks: write
-
 jobs:
   call-workflow:
     name: Build and Push Docker Images
     environment: Production
     uses: ./.github/workflows/reusable-docker-build-and-push.yml
     with:
-        docker_image_tag: latest
-        docker_bakefile_path: ./build/docker-bake.hcl
+      docker_image_tag: latest
+      docker_bakefile_path: ./build/docker-bake.hcl
     secrets:
-        azure_managed_identity_clientid: ${{ vars.MANAGED_IDENTITY_CLIENT_ID }}
+      azure_managed_identity_clientid: ${{ vars.MANAGED_IDENTITY_CLIENT_ID }}
