@@ -12,7 +12,8 @@ permissions:
   checks: write
 
 jobs:
-  deploy:
+  call-workflow:
+    name: Build and Push Docker Images
     environment: Production
     uses: DigitecGalaxus/actions/build/docker-bake/action.yml@v2
     with:
