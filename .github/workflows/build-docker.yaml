@@ -15,7 +15,7 @@ jobs:
   call-workflow:
     name: Build and Push Docker Images
     environment: Production
-    uses: .github/workflows/reusable-docker-build-and-push.yml@v1
+    uses: ./.github/workflows/reusable-docker-build-and-push.yml@v1
     with:
         docker_image_tag: latest
         docker_bakefile_path: ./build/docker-bake.hcl
