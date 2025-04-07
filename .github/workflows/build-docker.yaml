@@ -1,0 +1,22 @@
+name: Build and Push Docker Images
+run-name: Build and Push Docker Images
+on:
+  push:
+    branches:
+    - master
+
+## GITHUB_TOKEN permissions
+permissions:
+  id-token: write
+  contents: read
+  checks: write
+
+jobs:
+  deploy:
+    environment: Production  # Specify that this job uses the Production environment
+    uses: DigitecGalaxus/actions/build/docker-bake/action.yml@v2
+    with:
+        docker_image_tag: latest
+        docker_bakefile_path: ./build/docker-bake.hcl
+    secrets:
+        azure_managed_identity_clientid: ${{ vars.MANAGED_IDENTITY_CLIENT_ID }}
