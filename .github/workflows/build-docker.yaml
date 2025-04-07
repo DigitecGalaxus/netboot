@@ -3,7 +3,7 @@ run-name: Build and Push Docker Images
 on:
   push:
     branches:
-    - master
+    - "*"
 
 ## GITHUB_TOKEN permissions
 permissions:
@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   deploy:
-    environment: Production  # Specify that this job uses the Production environment
+    environment: Production
     uses: DigitecGalaxus/actions/build/docker-bake/action.yml@v2
     with:
         docker_image_tag: latest
