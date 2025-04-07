@@ -1,4 +1,4 @@
-FROM alpine:3.20.3 as bootfiles
+FROM alpine:3.20.3 AS bootfiles
 RUN apk add --no-cache bash gcc binutils make perl xz-libs xz-dev mtools git libc-dev curl openssl coreutils
 WORKDIR /build
 # Clone iPXE
