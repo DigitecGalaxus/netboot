@@ -12,7 +12,7 @@ on:
         description: "Path to the docker bake file"
         required: false
         type: string
-      azure_managed_identity_clientid:
+      MANAGED_IDENTITY_CLIENT_ID:
         required: true
         type: string
 

@@ -19,4 +19,4 @@ jobs:
     with:
       docker_image_tag: latest
       docker_bakefile_path: ./build/docker-bake.hcl
-      azure_managed_identity_clientid: ${{ vars.MANAGED_IDENTITY_CLIENT_ID }}
+      MANAGED_IDENTITY_CLIENT_ID: ${{ vars.MANAGED_IDENTITY_CLIENT_ID }}
