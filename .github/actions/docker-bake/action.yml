@@ -14,7 +14,9 @@ inputs:
   docker_bakefile_path:
     required: true
     description: "the location to the docker bake file hcl. most of the time build/dg-modulename-all/docker-bake.hcl"
-
+  docker_registry_name:
+    default: anymodconrst001dg
+    description: "the name of the docker registry. for example anymodconrst001dg"
 
 runs:
   using: "composite"
@@ -27,7 +29,7 @@ runs:
         allow-no-subscriptions: true
     - name: Docker login to ACR using AAD token
       shell: bash
-      run: az acr login --name anymodconrst001dg
+      run: az acr login --name ${{inputs.docker_registry_name}}
     - name: build docker images (buildx bake)
       shell: bash
       run: |

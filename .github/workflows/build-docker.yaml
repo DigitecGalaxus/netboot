@@ -19,4 +19,5 @@ jobs:
     with:
       docker_image_tag: latest
       docker_bakefile_path: ./build/docker-bake.hcl
+      docker_registry_name: "dgpublicimagesprod"
       environment: "Production"
