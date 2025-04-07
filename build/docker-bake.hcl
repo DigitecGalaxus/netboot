@@ -1,3 +1,8 @@
+variable "IMAGE_TAG" {}
+variable "CONTAINER_REGISTRY" {
+    default = "dgpublicimagesprod.azurecr.io"
+}
+
 group "default" {
   targets = ["netboot", "tftp", "http", "cleaner", "sync", "monitoring", "ipxeMenuGenerator"]
 }
