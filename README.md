@@ -32,16 +32,17 @@ Directory tree on `~/` of the netboot server:
 ├── netboot
 │   ├── assets
 │   │   ├── dev
-│   │   │   ├── 23-06-28-master-887729b-kernel.json
-│   │   │   ├── 23-06-28-master-887729b.squashfs
-│   │   ├── kernels
-│   │   │   ├── 6.2.0-20-generic
-│   │   │   │   ├── initrd
-│   │   │   │   └── vmlinuz
-│   │   │   └── latest-kernel-version.json
+│   │   │   ├── 24-03-30-master-4ebd220
+│   │   │   │   ├── dg-thinclient.squashfs
+│   │   │   │   ├── initrd
+│   │   │   │   └── vmlinuz
+│   │   │   ├── 24-03-29-master-887729b
 │   │   └── prod
-│   │       ├── 23-07-01-master-887729b-kernel.json
-│   │       ├── 23-07-01-master-887729b.squashfs
+│   │       ├── 24-03-30-master-4ebd220
+│   │       │   ├── dg-thinclient.squashfs
+│   │       │   ├── initrd
+│   │       │   └── vmlinuz
+│   │       ├── 24-04-02-master-7587bea
 │   └── config
 │       └── menus
 │           ├── advancedmenu.ipxe
