@@ -15,7 +15,7 @@ permissions:
 
 jobs:
   call-workflow:
-    uses: DigitecGalaxus/actions/.github/workflows/reusable-docker-build-and-push.yml@feature/planetexpress/noissue-add-reusable-docker-build
+    uses: DigitecGalaxus/public-actions/.github/workflows/reusable-docker-build-and-push.yml@master
     with:
       docker_image_tag: latest
       docker_bakefile_path: ./build/docker-bake.hcl
