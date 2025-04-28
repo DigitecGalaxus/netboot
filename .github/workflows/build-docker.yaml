@@ -3,7 +3,7 @@ run-name: Build and Push Docker Images
 on:
   push:
     branches:
-      - "*"
+      - "main"
   workflow_dispatch:
 ## GITHUB_TOKEN permissions
 permissions:
