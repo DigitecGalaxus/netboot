@@ -1,4 +1,3 @@
-version: "3.8"
 services:
   netboot-tftp:
     image: dgpublicimagesprod.azurecr.io/planetexpress/netboot-tftp:latest
@@ -47,11 +46,12 @@ services:
 
   netboot-monitoring:
     image: dgpublicimagesprod.azurecr.io/planetexpress/netboot-monitoring:latest
+    pull_policy: always
     container_name: netboot-monitoring
     env_file:
       - $HOME/monitoring.env
     restart: unless-stopped
-    
+
   netboot-build-main-ipxe-menus:
     image: dgpublicimagesprod.azurecr.io/planetexpress/netboot-ipxe-menu-generator:latest
     pull_policy: always
@@ -61,5 +61,4 @@ services:
     volumes:
       - $HOME/netboot/assets:/assets
       - $HOME/netboot/config/menus:/menus
-    restart:
-      unless-stopped
+    restart: unless-stopped
