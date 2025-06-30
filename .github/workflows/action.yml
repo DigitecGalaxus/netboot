@@ -1,0 +1,43 @@
+# For an example how this action can be used, have a look at /.github/workflows/reusable-deployment.yml
+name: 'Build and publish a docker image'
+description: 'Builds and publishes a docker image using buildx bake'
+inputs:
+  azure_tenant_id:
+    default: 35aa8c5b-ac0a-4b15-9788-ff6dfa22901f
+    description: Our azure tenant id.
+  azure_managed_identity_clientid:
+    required: true
+    description: "The Client ID value that you see on your azure managed identity resource. This is not the 'Object (principal) ID'"
+  docker_image_tag:
+    required: true
+    description: "the image tag to specify the version. for example 20240429.1 or latest etc."
+  docker_bakefile_path:
+    required: true
+    description: "the location to the docker bake file hcl. most of the time build/dg-modulename-all/docker-bake.hcl"
+
+
+runs:
+  using: "composite"
+  steps:
+    - name: Log into Azure
+      uses: azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5 # v2
+      with:
+        client-id: ${{ inputs.azure_managed_identity_clientid }}
+        tenant-id: ${{ inputs.azure_tenant_id }}
+        allow-no-subscriptions: true
+    - name: Docker login to ACR using AAD token
+      shell: bash
+      run: az acr login --name anymodconrst001dg
+    - name: build docker images (buildx bake)
+      shell: bash
+      run: |
+        IMAGE_TAG=${{ inputs.docker_image_tag }} \
+          /usr/bin/docker buildx bake \
+            -f ${{ inputs.docker_bakefile_path }} \
+            --progress=plain \
+            2>&1 \
+          | perl -pe 's/(.*?: error )/::error::\1/i;' \
+            -pe 's/::error::#(.*?\/app\/(.*?)\((\d+),(\d+)\))/::error file=\2,line=\3,col=\4::\1/i'
+          # Note: the perl command above first formats errors for GitHub Actions.
+          #       Then in a second pass, it tries to extract file information and modify the GitHub Actions format to include it.
+          #       The better way to do this would be to write a custom BuildLogger implementing ILogger

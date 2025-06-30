@@ -1,4 +1,4 @@
-FROM alpine:3.20.3 AS bootfiles
+FROM alpine:3.20.3 as bootfiles
 RUN apk add --no-cache bash gcc binutils make perl xz-libs xz-dev mtools git libc-dev curl openssl coreutils
 WORKDIR /build
 # Clone iPXE
@@ -17,9 +17,9 @@ RUN curl -s https://letsencrypt.org/certs/lets-encrypt-r3.pem > ipxe/src/lets-en
 COPY custom.ipxe ipxe/src/custom.ipxe
 # Run the builds
 # Note: We're using snponly to retain the original UEFI-drivers and thus improving reliability and reducing the size of the bootloader.
-RUN cd ipxe/src && make bin/undionly.kpxe EMBED=custom.ipxe CERT=ca.pem,isrgrootx1.pem,lets-encrypt-r3.pem TRUST=ca.pem,isrgrootx1.pem,lets-encrypt-r3.pem > /dev/null && \
-make bin-i386-efi/snponly.efi EMBED=custom.ipxe CERT=ca.pem,isrgrootx1.pem,lets-encrypt-r3.pem TRUST=ca.pem,isrgrootx1.pem,lets-encrypt-r3.pem > /dev/null  && \
-make bin-x86_64-efi/snponly.efi EMBED=custom.ipxe CERT=ca.pem,isrgrootx1.pem,lets-encrypt-r3.pem TRUST=ca.pem,isrgrootx1.pem,lets-encrypt-r3.pem > /dev/null 
+RUN cd ipxe/src && make bin/undionly.kpxe EMBED=custom.ipxe CERT=ca.pem,isrgrootx1.pem,lets-encrypt-r3.pem TRUST=ca.pem,isrgrootx1.pem,lets-encrypt-r3.pem && \
+make bin-i386-efi/snponly.efi EMBED=custom.ipxe CERT=ca.pem,isrgrootx1.pem,lets-encrypt-r3.pem TRUST=ca.pem,isrgrootx1.pem,lets-encrypt-r3.pem  && \
+make bin-x86_64-efi/snponly.efi EMBED=custom.ipxe CERT=ca.pem,isrgrootx1.pem,lets-encrypt-r3.pem TRUST=ca.pem,isrgrootx1.pem,lets-encrypt-r3.pem 
 
 FROM alpine:3.20.3
 
