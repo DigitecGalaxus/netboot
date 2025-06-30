@@ -1,50 +1,42 @@
-variable "IMAGE_TAG" {}
-variable "CONTAINER_REGISTRY" {
-  default = "dgpublicimagesprod.azurecr.io"
-}
-
 group "default" {
-  targets = ["tftp", "http", "cleaner", "sync", "monitoring", "ipxeMenuGenerator"]
+  targets = ["netboot", "tftp", "http", "cleaner", "sync", "monitoring", "ipxeMenuGenerator"]
 }
 
 target "tftp" {
-  tags       = ["${CONTAINER_REGISTRY}/planetexpress/netboot-tftp:${IMAGE_TAG}"]
-  dockerfile = "Dockerfile"
-  context    = "./netboot-services/tftp"
-  output     = ["type=registry"]
+  target     = "tftp"
+  tags       = ["planetexpress/netboot-tftp:${IMAGE_TAG}"]
+  dockerfile = "./netboot-services/tftp/Dockerfile"
+  context    = "./netboot-services/tftp/"
 }
 
 target "http" {
-  tags       = ["${CONTAINER_REGISTRY}/planetexpress/netboot-http:${IMAGE_TAG}"]
-  dockerfile = "Dockerfile"
-  context    = "./netboot-services/http"
-  output     = ["type=registry"]
+  target     = "http"
+  tags       = ["planetexpress/netboot-http:${IMAGE_TAG}"]
+  dockerfile = "./netboot-services/http/Dockerfile"
+  context    = "./netboot-services/http/"
 }
 
 target "cleaner" {
-  tags       = ["${CONTAINER_REGISTRY}/planetexpress/netboot-cleaner:${IMAGE_TAG}"]
-  dockerfile = "Dockerfile"
-  context    = "./netboot-services/cleaner"
-  output     = ["type=registry"]
+  target     = "cleaner"
+  tags       = ["planetexpress/netboot-cleaner:${IMAGE_TAG}"]
+  dockerfile = "./netboot-services/cleaner/Dockerfile"
+  context    = "./netboot-services/cleaner/"
 }
 
 target "sync" {
-  tags       = ["${CONTAINER_REGISTRY}/planetexpress/netboot-sync:${IMAGE_TAG}"]
-  dockerfile = "Dockerfile"
-  context    = "./netboot-services/sync"
-  output     = ["type=registry"]
+  target     = "monitoring"
+  tags       = ["planetexpress/netboot-sync:${IMAGE_TAG}"]
+  dockerfile = "./netboot-services/sync/Dockerfile"
 }
 
 target "monitoring" {
-  tags       = ["${CONTAINER_REGISTRY}/planetexpress/netboot-monitoring:${IMAGE_TAG}"]
-  dockerfile = "Dockerfile"
-  context    = "./netboot-services/monitoring"
-  output     = ["type=registry"]
+  target     = "monitoring"
+  tags       = ["planetexpress/netboot-monitoring:${IMAGE_TAG}"]
+  dockerfile = "./netboot-services/monitoring/Dockerfile"
 }
 
 target "ipxeMenuGenerator" {
-  tags       = ["${CONTAINER_REGISTRY}/planetexpress/netboot-ipxe-menu-generator:${IMAGE_TAG}"]
-  dockerfile = "Dockerfile"
-  context    = "./netboot-services/ipxeMenuGenerator"
-  output     = ["type=registry"]
+  target     = "ipxeMenuGenerator"
+  tags       = ["planetexpress/netboot-ipxe-menu-generator:${IMAGE_TAG}"]
+  dockerfile = "./netboot-services/ipxeMenuGenerator/Dockerfile"
 }
