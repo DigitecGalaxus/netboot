@@ -2,7 +2,7 @@ FROM alpine:3.20.3 AS bootfiles
 RUN apk add --no-cache bash gcc binutils make perl xz-libs xz-dev mtools git libc-dev curl openssl coreutils
 WORKDIR /build
 # Clone iPXE
-RUN git clone git://git.ipxe.org/ipxe.git
+RUN git clone https://github.com/ipxe/ipxe.git
 RUN sed -i 's/#undef\tDOWNLOAD_PROTO_HTTPS/#define\ DOWNLOAD_PROTO_HTTPS/' ipxe/src/config/general.h
 RUN sed -i 's/\/\/#define PING_CMD/#define PING_CMD/' ipxe/src/config/general.h
 RUN sed -i 's/\/\/#define NSLOOKUP_CMD/#define NSLOOKUP_CMD/' ipxe/src/config/general.h
