@@ -12,6 +12,8 @@ iseq ${netX/gateway} 172.20.56.1 && set language fr_CH && goto check_boot_from_a
 iseq ${netX/gateway} 172.22.32.1 && set language de_DE && goto check_boot_from_azure ||
 # Odilia
 iseq ${netX/gateway} 172.22.240.1 && set language de_DE && goto check_boot_from_azure ||
+# ON1
+iseq ${netX/gateway} 172.22.164.1 && set language de_DE && goto check_boot_from_azure ||
 # Fallback (when no condition above triggers to set next-server)
 set language de_CH
 
