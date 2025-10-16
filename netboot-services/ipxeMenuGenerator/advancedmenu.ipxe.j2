@@ -17,7 +17,6 @@ item --gap Development:
 item thinclient-{{ img.squashfsFoldername }} ${sp} {{ img.squashfsFoldername }}
 {% endfor %}
 item --gap Tools:
-item reset_windows ${sp} Notebook Wipe
 item public-netbootxyz ${sp} Public netboot.xyz ||
 item shell ${sp} iPXE shell
 item netinfo ${sp} Netzwerkinfo
@@ -38,15 +37,6 @@ goto advanced_menu
 :reboot
 echo Rebooting...
 reboot
-
-:reset_windows
-kernel https://thinclients.blob.core.windows.net/win/reset/wimboot
-initrd https://thinclients.blob.core.windows.net/win/reset/winpeshl.ini   winpeshl.ini
-initrd https://thinclients.blob.core.windows.net/win/reset/install.bat    install.bat
-initrd https://thinclients.blob.core.windows.net/win/reset/bcd            BCD
-initrd https://thinclients.blob.core.windows.net/win/reset/boot.sdi       boot.sdi
-initrd https://thinclients.blob.core.windows.net/win/reset/boot.wim       boot.wim
-boot || goto advanced_menu
 
 :shell
 echo Type "exit" to return to menu.
