@@ -9,8 +9,6 @@ This repo contains all necessary files to easily maintain (and provision) the ne
 - monitoring: Monitors the Protocol Endpoints (TFTP / HTTP) and writes them to an Influx DB
 - ipxe-menu-generator: Generates IPXE menus for caching servers
 
-[![Build Status](https://dev.azure.com/digitecgalaxus/SystemEngineering/_apis/build/status/Github/DigitecGalaxus.netboot?repoName=DigitecGalaxus%2Fnetboot&branchName=main)](https://dev.azure.com/digitecgalaxus/SystemEngineering/_build/latest?definitionId=1182&repoName=DigitecGalaxus%2Fnetboot&branchName=main)
-
 ## Prerequisites
 
 To run the components of this repository, the following is required:

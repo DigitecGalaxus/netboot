@@ -8,11 +8,9 @@ Based on the available variables passed in [ipxe-menu-generator.env](./ipxe-menu
 
 The IPXE workflow is as follows:
 
-1. The next-server defined on the DHCP server points to either a local netboot server per location or the azure netboot server
-2. The netboot server serves the IPXE binary (`undionly.kpxe`, `ipxe32.efi`, `ipxe64.efi`), which points to the `menu.ipxe` which is dyanmically generated on each netboot server.
-3. If the `next-server` equals the value of the azure netboot server, it checks the availability of a a storage account in azure, which holds the necessary files, is available. If it is available, the correct variables will be set (`http-protocol`, `url`, `sas_token`).
-4. If none of the above is true, we will use the local netboot server as a primary source.
-5. Based on the available variables, the menu will be generated and served to the client.
+1. The next-server defined on the DHCP server points to a local netboot server per location
+2. The netboot server serves the IPXE binary (`undionly.kpxe`, `ipxe32.efi`, `ipxe64.efi`), which points to the `menu.ipxe` which is dynamically generated on each netboot server.
+3. Based on the available variables, the menu will be generated and served to the client.
 
 ## MAC specific booting
 

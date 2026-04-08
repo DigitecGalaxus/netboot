@@ -26,11 +26,8 @@ type SquashfsPaths struct {
 }
 
 type RenderMenuData struct {
-	BasicData                RenderBaseData
-	NetbootServerIP          string
-	AzureNetbootServerIP     string
-	AzureBlobstorageURL      string
-	AzureBlobstorageSASToken string
+	BasicData       RenderBaseData
+	NetbootServerIP string
 }
 
 type RenderAdvancedMenuData struct {
@@ -55,20 +52,6 @@ func main() {
 		if netbootServerIP == "" {
 			log.Fatal("NETBOOT_SERVER_IP not set")
 		}
-		azureNetbootServerIP := os.Getenv("AZURE_NETBOOT_SERVER_IP")
-		if azureNetbootServerIP == "" {
-			log.Fatal("AZURE_NETBOOT_SERVER_IP not set")
-		}
-
-		azureBlobstorageSASToken := os.Getenv("AZURE_SYNC_SAS_TOKEN")
-		if azureBlobstorageSASToken == "" {
-			log.Fatal("AZURE_SYNC_SAS_TOKEN not set")
-		}
-
-		azureBlobstorageURL := os.Getenv("AZURE_SYNC_BLOB_URL")
-		if azureBlobstorageURL == "" {
-			log.Fatal("AZURE_SYNC_BLOB_URL not set")
-		}
 
 		mostRecentSquashfsFoldername, err := getMostRecentSquashfsImageFolder(ProdFolder)
 		if err != nil {
@@ -91,10 +74,7 @@ func main() {
 					MenusDirectory:    MenusDirectory,
 					WorkingDirectory:  WorkingDirectory,
 				},
-				NetbootServerIP:          netbootServerIP,
-				AzureNetbootServerIP:     azureNetbootServerIP,
-				AzureBlobstorageURL:      azureBlobstorageURL,
-				AzureBlobstorageSASToken: azureBlobstorageSASToken,
+				NetbootServerIP: netbootServerIP,
 			}, mostRecentSquashfsImage)
 		if err != nil {
 			log.Fatal(err)
@@ -177,9 +157,6 @@ func getMostRecentSquashfsImageFolder(folderName string) (string, error) {
 func renderMenuIpxe(menuData RenderMenuData, mostRecentSquashFS SquashfsPaths) error {
 	j2, err := jinja2.NewJinja2("menu.ipxe", 1,
 		jinja2.WithGlobal("netbootServerIP", menuData.NetbootServerIP),
-		jinja2.WithGlobal("azureNetbootServerIP", menuData.AzureNetbootServerIP),
-		jinja2.WithGlobal("azureBlobstorageSASToken", menuData.AzureBlobstorageSASToken),
-		jinja2.WithGlobal("azureBlobstorageURL", menuData.AzureBlobstorageURL),
 		jinja2.WithGlobal("imageName", mostRecentSquashFS),
 	)
 	if err != nil {
