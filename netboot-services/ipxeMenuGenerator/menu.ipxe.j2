@@ -5,29 +5,19 @@
 # Language-Detection: Set different languages based on the default gateway IP address
 :language
 # Lausanne
-iseq ${netX/gateway} 172.20.72.1 && set language fr_CH && goto check_boot_from_azure ||
+iseq ${netX/gateway} 172.20.72.1 && set language fr_CH ||
 # Genf
-iseq ${netX/gateway} 172.20.56.1 && set language fr_CH && goto check_boot_from_azure ||
+iseq ${netX/gateway} 172.20.56.1 && set language fr_CH ||
 # Krefeld
-iseq ${netX/gateway} 172.22.32.1 && set language de_DE && goto check_boot_from_azure ||
+iseq ${netX/gateway} 172.22.32.1 && set language de_DE ||
 # Odilia
-iseq ${netX/gateway} 172.22.240.1 && set language de_DE && goto check_boot_from_azure ||
+iseq ${netX/gateway} 172.22.240.1 && set language de_DE ||
 # ON1
-iseq ${netX/gateway} 172.22.164.1 && set language de_DE && goto check_boot_from_azure ||
+iseq ${netX/gateway} 172.22.164.1 && set language de_DE ||
 # Fallback (when no condition above triggers to set next-server)
 set language de_CH
 
-:check_boot_from_azure
-iseq ${next-server} {{ azureNetbootServerIP }} && goto check_if_storage_account_is_reachable ||
-# if nothing applies, boot from local network
-set http-protocol http && set url ${next-server} && goto macboot ||
-
-:check_if_storage_account_is_reachable
-imgfetch https://{{ azureBlobstorageURL }}/healthcheck/healthcheck.json{{ azureBlobstorageSASToken }} &&  goto set_azure_storageaccount ||
-set http-protocol http && goto macboot ||
-
-:set_azure_storageaccount
-set http-protocol https && set url {{ azureBlobstorageURL }} && set sas_token {{ azureBlobstorageSASToken }} && goto macboot ||
+set http-protocol http && set url ${next-server} && goto macboot
 
 :macboot
 chain --autofree tftp://{{ netbootServerIP }}/ipxe/MAC-${mac:hexraw}.ipxe || echo Custom boot by MAC not found, going to menu...
@@ -47,14 +37,14 @@ goto ${initial_choice}
 
 # Bootconfigurtion for our netboot-OS
 :dg-thinclient-prod
-set squash_url ${http-protocol}://${url}/prod/{{ imageName.squashfsFoldername }}/{{ imageName.squashfsFilename }}${sas_token}
+set squash_url ${http-protocol}://${url}/prod/{{ imageName.squashfsFoldername }}/{{ imageName.squashfsFilename }}
 set kernel_url ${http-protocol}://${url}/prod/{{ imageName.squashfsFoldername }}/
 set cmdline i915.enable_psr=0 intel_idle.max_cstate=2
 
 :startboot
 imgfree
-kernel ${kernel_url}vmlinuz${sas_token} ip=dhcp boot=casper netboot=url url=${squash_url} initrd=initrd locale=${language} ${cmdline}
-initrd ${kernel_url}initrd${sas_token}
+kernel ${kernel_url}vmlinuz ip=dhcp boot=casper netboot=url url=${squash_url} initrd=initrd locale=${language} ${cmdline}
+initrd ${kernel_url}initrd
 boot
 
 # Chaining the advanced menu.

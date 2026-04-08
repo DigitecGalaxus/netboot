@@ -56,7 +56,7 @@ chain http://boot.netboot.xyz/ipxe/netboot.xyz-snponly.efi
 
 {% for img in prod %}
 :thinclient-{{ img.squashfsFoldername }}
-set squash_url ${http-protocol}://${url}/prod/{{ img.squashfsFoldername }}/{{ img.squashfsFilename }}${sas_token}
+set squash_url ${http-protocol}://${url}/prod/{{ img.squashfsFoldername }}/{{ img.squashfsFilename }}
 set kernel_url ${http-protocol}://${url}/prod/{{ img.squashfsFoldername }}/
 goto startboot
 {% endfor %}
@@ -67,19 +67,19 @@ goto startboot
 
 {% for img in dev %}
 :thinclient-{{ img.squashfsFoldername }}
-set squash_url ${http-protocol}://${url}/dev/{{ img.squashfsFoldername }}/{{ img.squashfsFilename }}${sas_token}
+set squash_url ${http-protocol}://${url}/dev/{{ img.squashfsFoldername }}/{{ img.squashfsFilename }}
 set kernel_url ${http-protocol}://${url}/dev/{{ img.squashfsFoldername }}/
 goto startboot-dev
 {% endfor %}
 
 :startboot
 imgfree
-kernel ${kernel_url}vmlinuz${sas_token} ip=dhcp boot=casper netboot=url url=${squash_url} initrd=initrd locale=${language} ${cmdline} quiet splash
-initrd ${kernel_url}initrd${sas_token}
+kernel ${kernel_url}vmlinuz ip=dhcp boot=casper netboot=url url=${squash_url} initrd=initrd locale=${language} ${cmdline} quiet splash
+initrd ${kernel_url}initrd
 boot
 
 :startboot-dev
 imgfree
-kernel ${kernel_url}vmlinuz${sas_token} ip=dhcp boot=casper netboot=url url=${squash_url} initrd=initrd locale=${language} ${cmdline}
-initrd ${kernel_url}initrd${sas_token}
+kernel ${kernel_url}vmlinuz ip=dhcp boot=casper netboot=url url=${squash_url} initrd=initrd locale=${language} ${cmdline}
+initrd ${kernel_url}initrd
 boot
