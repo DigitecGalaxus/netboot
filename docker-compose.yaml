@@ -49,6 +49,11 @@ services:
     container_name: netboot-monitoring
     env_file:
       - $HOME/monitoring.env
+    # docker-default profile in docker-ce >= 29.4.3 trips a kernel oops in
+    # aa_inet_bind_perm on bind() under kernel 6.8.0-111. atftp probes crash
+    # on every call. Run unconfined until the kernel/profile is fixed.
+    security_opt:
+      - apparmor=unconfined
     restart: unless-stopped
     
   netboot-build-main-ipxe-menus:
