@@ -12,4 +12,4 @@ The script [monitor_tftp.sh](monitor_tftp.sh) checks for the presence of the fil
 
 ## HTTP Monitoring
 
-The script [monitor_serveravailability.sh](monitor_serveravailability.sh) checks whether various files are available and accessible on the HTTP servers - both the netboot server and the caching servers. It also checks the basic functionality of the [netboot-syncer](../sync/) container by checking if the most recent file of the netboot server is also present on the caching servers.
+The script [monitor_serveravailability.sh](monitor_serveravailability.sh) checks whether the files needed to boot are available and accessible on the netboot server's HTTP endpoint. It reads the advertised prod version from `healthcheck.json` and verifies that the corresponding `healthcheck.json` and prod image file can actually be downloaded.
