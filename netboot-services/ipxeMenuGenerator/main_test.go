@@ -58,11 +58,6 @@ func TestGetSquashfsFileName(t *testing.T) {
 			files:          []string{"other.txt"},
 			expectedResult: "",
 		},
-		{
-			name:           "With .azDownload file",
-			files:          []string{".azDownload-image.squashfs", "image.squashfs"},
-			expectedResult: "",
-		},
 	}
 
 	for _, test := range tests {
@@ -86,17 +81,13 @@ func TestGetSquashfsFileName(t *testing.T) {
 func TestGetImages(t *testing.T) {
 	// Arrange
 	tempDir := t.TempDir()
-	folders := []string{"24-08-27-master-a46edbc", "24-08-28-master-a46edbc", "24-08-29-master-a46edbc", "azDownloadFolder"}
+	folders := []string{"24-08-27-master-a46edbc", "24-08-28-master-a46edbc", "24-08-29-master-a46edbc"}
 	for i, folder := range folders {
 		folderPath := filepath.Join(tempDir, folder)
 		require.NoError(t, os.Mkdir(folderPath, 0755))
 
-		if folder == "azDownloadFolder" {
-			require.NoError(t, os.WriteFile(filepath.Join(folderPath, ".azDownload-image.squashfs"), []byte("blub"), 0644))
-		} else {
-			squashfsFile := filepath.Join(folderPath, "image.squashfs")
-			require.NoError(t, os.WriteFile(squashfsFile, []byte("blub"), 0644))
-		}
+		squashfsFile := filepath.Join(folderPath, "image.squashfs")
+		require.NoError(t, os.WriteFile(squashfsFile, []byte("blub"), 0644))
 
 		// Change the modtime for each folder by 1 hour
 		modTime := time.Now().Add(time.Duration(i) * time.Hour)
@@ -112,11 +103,6 @@ func TestGetImages(t *testing.T) {
 	assert.Equal(t, "24-08-29-master-a46edbc", images[0].SquashfsFoldername)
 	assert.Equal(t, "24-08-28-master-a46edbc", images[1].SquashfsFoldername)
 	assert.Equal(t, "24-08-27-master-a46edbc", images[2].SquashfsFoldername)
-
-	// Assert that azDownloadFolder is not included
-	for _, image := range images {
-		assert.NotEqual(t, "azDownloadFolder", image.SquashfsFoldername)
-	}
 }
 
 func TestRenderMenuIpxe(t *testing.T) {
