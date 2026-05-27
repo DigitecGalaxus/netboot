@@ -33,17 +33,6 @@ services:
       - $HOME/netboot/assets:/cleaning
     restart: unless-stopped
 
-  netboot-sync:
-    image: dgpublicimagesprod.azurecr.io/planetexpress/netboot-sync:latest
-    pull_policy: always
-    container_name: netboot-sync
-    user: 1000:1000
-    env_file:
-      - $HOME/sync.env
-    volumes:
-      - $HOME/netboot/assets:/home/syncer/
-    restart: unless-stopped
-
   netboot-monitoring:
     image: dgpublicimagesprod.azurecr.io/planetexpress/netboot-monitoring:latest
     container_name: netboot-monitoring

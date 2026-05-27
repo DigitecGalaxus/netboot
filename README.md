@@ -4,7 +4,6 @@ This repo contains all necessary files to easily maintain (and provision) the ne
 
 - tftp: Exposes the initial bootloader as well as the menus for iPXE to work.
 - http: Exposes the assets (Filesystems) via HTTP for iPXE to boot.
-- sync: Takes care of syncing the assets to the caching servers.
 - cleaner: Takes care of cleaning the assets folder so it won't grow too big.
 - monitoring: Monitors the Protocol Endpoints (TFTP / HTTP) and writes them to an Influx DB
 - ipxe-menu-generator: Generates IPXE menus for caching servers
@@ -27,35 +26,52 @@ Directory tree on `~/` of the netboot server:
 ├── docker-compose.yaml
 ├── ipxe-menu-generator.env
 ├── monitoring.env
-├── netboot
-│   ├── assets
-│   │   ├── dev
-│   │   │   ├── 23-06-28-master-887729b-kernel.json
-│   │   │   ├── 23-06-28-master-887729b.squashfs
-│   │   ├── kernels
-│   │   │   ├── 6.2.0-20-generic
-│   │   │   │   ├── initrd
-│   │   │   │   └── vmlinuz
-│   │   │   └── latest-kernel-version.json
-│   │   └── prod
-│   │       ├── 23-07-01-master-887729b-kernel.json
-│   │       ├── 23-07-01-master-887729b.squashfs
-│   └── config
-│       └── menus
-│           ├── advancedmenu.ipxe
-│           ├── menu.ipxe
-│           └── netinfo.ipxe
-└── sync.env
+└── netboot
+    ├── assets
+    │   ├── ProbasClient
+...
+    │   ├── dev
+    │   │   ├── 26-04-24-noissue-vector-himmelblau-logs-7e44bb3
+    │   │   │   ├── dg-thinclient.squashfs
+    │   │   │   ├── initrd
+    │   │   │   └── vmlinuz
+...
+    │   │   └── 26-05-20-SUP-51095-name-mapping-script-4cbfeb2
+    │   │       ├── dg-thinclient.squashfs
+    │   │       ├── initrd
+    │   │       └── vmlinuz
+    │   ├── easyscan
+    │   │   └── easyscan.zip
+    │   ├── healthcheck.json
+    │   ├── prod
+    │   │   ├── 26-05-19-master-7896901
+    │   │   │   ├── dg-thinclient.squashfs
+    │   │   │   ├── initrd
+    │   │   │   └── vmlinuz
+    │   │   ├── 26-05-19-master-c56b550
+    │   │   │   ├── dg-thinclient.squashfs
+    │   │   │   ├── initrd
+    │   │   │   └── vmlinuz
+...
+    │   │   └── 26-05-26-master-b32afa3
+    │   │       ├── dg-thinclient.squashfs
+    │   │       ├── initrd
+    │   │       └── vmlinuz
+    │   └── zero-day-config.py
+    └── config
+        └── menus
+            ├── advancedmenu.ipxe
+            ├── menu.ipxe
+            └── netinfo.ipxe
 ```
 
 ## How it works
 
-We provision the six services using the [docker-compose.yaml](/docker-compose.yaml) file. This requires the docker images to be present on the host. Those can be either pulled from our public registry or built manually. Set the correct environment variables in the `.env` files. Bring your stack up with `docker compose up -d`.
+We provision the services using the [docker-compose.yaml](/docker-compose.yaml) file. This requires the docker images to be present on the host. Those can be either pulled from our public registry or built manually. Set the correct environment variables in the `.env` files. Bring your stack up with `docker compose up -d`.
 
 ```bash
 docker image build -t dgpublicimagesprod.azurecr.io/planetexpress/netboot-tftp:latest ./netboot-services/tftp/
 docker image build -t dgpublicimagesprod.azurecr.io/planetexpress/netboot-http:latest ./netboot-services/http/
-docker image build -t dgpublicimagesprod.azurecr.io/planetexpress/netboot-sync:latest ./netboot-services/sync/
 docker image build -t dgpublicimagesprod.azurecr.io/planetexpress/netboot-cleaner:latest ./netboot-services/cleaner/
 docker image build -t dgpublicimagesprod.azurecr.io/planetexpress/netboot-monitoring:latest ./netboot-services/monitoring/
 docker image build -t dgpublicimagesprod.azurecr.io/planetexpress/netboot-ipxe-menu-generator:latest ./netboot-services/ipxeMenuGenerator/
@@ -64,7 +80,7 @@ docker image build -t dgpublicimagesprod.azurecr.io/planetexpress/netboot-ipxe-m
 ## Usage
 
 1. Create the directory structure on the netboot server (see [Directory structure](#directory-structure))
-2. Upload your `.squashfs` + `.json` files with to the netboot server
+2. Upload your image folders (`dg-thinclient.squashfs` + `initrd` + `vmlinuz`) to the netboot server
 3. Build or pull the docker images
 4. Set the correct environment variables in the `.env` files
 5. Bring your stack up with `docker compose up -d`
