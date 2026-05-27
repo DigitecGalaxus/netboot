@@ -192,7 +192,7 @@ func getImages(folderName string) ([]SquashfsPaths, error) {
 		if folder.Type() == os.ModeDir {
 			squashfsFilename := getSquashfsFileName(folderName, folder.Name())
 			if squashfsFilename == "" {
-				fmt.Println("not APPENDING folder due to active .azDownload Sync: ", folder.Name())
+				fmt.Println("not APPENDING folder, no squashfs file found: ", folder.Name())
 				continue
 			}
 			squashfsFiles = append(squashfsFiles, folder)
@@ -221,9 +221,6 @@ func getSquashfsFileName(folderName string, newImageFolderName string) string {
 	}
 
 	for _, file := range files {
-		if strings.HasPrefix(file.Name(), ".azDownload") {
-			return ""
-		}
 		if strings.HasSuffix(file.Name(), ".squashfs") {
 			return file.Name()
 		}
